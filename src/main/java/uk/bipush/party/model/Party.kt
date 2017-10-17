@@ -5,10 +5,7 @@ import io.ebean.Model
 import io.ebean.annotation.CreatedTimestamp
 import io.ebean.annotation.UpdatedTimestamp
 import org.joda.time.DateTime
-import javax.persistence.Entity
-import javax.persistence.Id
-import javax.persistence.ManyToOne
-import javax.persistence.OneToMany
+import javax.persistence.*
 
 enum class PartyStatus {
     ONLINE, OFFLINE
@@ -22,16 +19,57 @@ class Party: Model() {
     }
 
     @Id
-    var id: Long? = 0
+    var id: Long = 0
     @ManyToOne
-    var account: Account? = null
-    @OneToMany(mappedBy = "party")
-    var members: MutableList<PartyMember> = mutableListOf()
+    var owner: Account? = null
+    @OneToMany
+    var members: MutableSet<Account> = mutableSetOf()
     var name: String? = ""
     var description: String? = ""
-
+    @Enumerated(value = EnumType.STRING)
+    var status: PartyStatus? = PartyStatus.ONLINE
     @CreatedTimestamp
     var created: DateTime? = null
     @UpdatedTimestamp
     var updated: DateTime? = null
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Account
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+}
+
+class PartyResponse {
+    var id: Long = 0
+    var owner: AccountResponse? = null
+    var members: MutableSet<AccountResponse> = mutableSetOf()
+    var name: String? = ""
+    var description: String? = ""
+    var status: PartyStatus? = null
+    var created: DateTime? = null
+    var updated: DateTime? = null
+}
+
+fun Party.response(withTokens: Boolean = false): PartyResponse {
+    val self = this
+    return PartyResponse().apply {
+        this.id = self.id
+        this.owner = self.owner?.response(withTokens, false)
+        this.members = self.members.map { m -> m.response(false, false) }.toMutableSet()
+        this.name = self.name
+        this.description = self.description
+        this.status = self.status
+        this.created = self.created
+        this.updated = self.updated
+    }
 }

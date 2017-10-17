@@ -13,23 +13,58 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect
 import org.eclipse.jetty.websocket.api.annotations.WebSocket
+import uk.bipush.party.model.Account
 import uk.bipush.party.model.Party
-import uk.bipush.party.model.PartyMember
+import uk.bipush.party.model.response
+import uk.bipush.party.queue.PartyQueue
+import uk.bipush.party.queue.response
 
 
 @WebSocket
 class PartyHandler {
-    private val mapper = ObjectMapper()
-            .registerModule(KotlinModule())
-            .registerModule(JodaModule())
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-    private val connections: BiMap<Session, PartyMember> = HashBiMap.create()
+
+    companion object {
+        private val mapper = ObjectMapper()
+                .registerModule(KotlinModule())
+                .registerModule(JodaModule())
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+
+        private val connections: BiMap<Session, Account> = HashBiMap.create()
 
 
+        fun sendQueueUpdate(partyQueue: PartyQueue, accounts: Set<Account>) {
+            val json = mapper.writeValueAsString(partyQueue.response(false))
+
+            val msg = mapper.writeValueAsString(WSMessage("QUEUE_UPDATE", json))
+
+            val inversed = connections.inverse()
+
+            accounts.forEach { account ->
+                val session = inversed.get(account)
+                if (session != null) {
+                    session.remote.sendString(msg)
+                }
+            }
+        }
+
+        fun sendPartyUpdate(party: Party, accounts: Set<Account>) {
+            val json = mapper.writeValueAsString(party.response(false))
+
+            val msg = mapper.writeValueAsString(WSMessage("PARTY_UPDATE", json))
+
+            val inversed = connections.inverse()
+
+            accounts.forEach { account ->
+                val session = inversed.get(account)
+                if (session != null) {
+                    session.remote.sendString(msg)
+                }
+            }
+        }
+    }
     @OnWebSocketConnect
     @Throws(Exception::class)
     fun onConnect(user: Session) {
-
     }
 
     @OnWebSocketClose
@@ -39,55 +74,44 @@ class PartyHandler {
 
     @OnWebSocketMessage
     fun onMessage(user: Session, message: String) {
-        val wsRequest: WSRequest = mapper.readValue(message)
-        when (wsRequest.opcode) {
-            "join_party" -> handleJoinParty(user, wsRequest.body)
-            "create_party" -> handleCreateParty(user, wsRequest.body)
-        }
-    }
+        val wsRequest: WSMessage = mapper.readValue(message)
+        val account = connections[user]
 
-    private fun handleJoinParty(user: Session, body: String) {
-        val request: JoinPartyRequest = mapper.readValue(body)
-        val existingMember = PartyMember.finder.query()
-                .where()
-                .eq("party.id", request.id)
-                .eq("displayName", request.displayName)
-                .findUnique()
-        if (existingMember != null) {
-            user.remote.sendString(mapper.writeValueAsString(WSResponse(true, PartyJoinedResponse(existingMember.party!!))))
+        if (wsRequest.opcode == "auth") {
+            handleAuth(user, wsRequest.body)
         } else {
-            val party = Party.finder.byId(request.id)
-            if (party != null) {
-                val member = PartyMember().apply {
-                    this.party = party
-                    this.displayName = request.displayName
-                }
-                member.save()
-                connections.put(user, member)
-                user.remote.sendString(mapper.writeValueAsString(WSResponse(true, PartyJoinedResponse(party))))
-            } else {
-                user.remote.sendString(mapper.writeValueAsString(WSResponse(false, "No such party.")))
+            if (account == null) {
+                user.remote.sendString("FORBIDDEN")
+            }
+
+            when (wsRequest.opcode) {
+//                "join_party" -> handleJoinParty(user, wsRequest.body, account)
+//                "create_party" -> handleCreateParty(user, wsRequest.body, account)
             }
         }
     }
 
-    private fun handleCreateParty(user: Session, body: String) {
-//        val request: CreatePartyRequest = mapper.readValue(body)
-//        val party: Party = Party().apply {
-//            this.name = request.name
-//        }
+    private fun handleAuth(user: Session, body: String) {
+        val request: AuthRequest = mapper.readValue(body)
+
+        val account = Account.finder.query().where()
+                .eq("id", request.userId)
+                .eq("refreshToken", request.refreshToken)
+                .findUnique()
+
+        if (account != null) {
+            connections.put(user, account)
+        } else {
+            user.disconnect()
+        }
     }
 
 }
 
 data class PartySession(val session: Session, val party: Party)
 
-data class WSRequest(val opcode: String, val body: String)
+data class WSMessage(val opcode: String, val body: String)
 
 data class WSResponse<T>(val success: Boolean, val body: T)
 
-data class JoinPartyRequest(val id: Long, val displayName: String)
-
-data class PartyJoinedResponse(val party: Party)
-
-data class AuthRequest(val email: String)
+data class AuthRequest(val userId: Int, val refreshToken: String)

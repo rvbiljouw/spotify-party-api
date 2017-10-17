@@ -4,10 +4,13 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.wrapper.spotify.Api
+import com.wrapper.spotify.models.*
 import okhttp3.MediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import java.net.URLEncoder
 
 
 object Spotify {
@@ -63,6 +66,54 @@ object Spotify {
         } else {
             return null
         }
+    }
+
+    fun searchSongs(accessToken: String, refreshToken: String, filters: List<SpotifyFilter>, offset: Int = 0, limit: Int = 25): Page<Track>? {
+        val api = Api.builder()
+                .clientId(Spotify.CLIENT_ID)
+                .clientSecret(Spotify.CLIENT_SECRET)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .redirectURI("http://localhost:8080/callback")
+                .build()
+
+        return api.searchTracks(filters.joinToString(" ") { f -> f.compile() })
+                .offset(offset)
+                .limit(limit)
+                .build()
+                .get()
+    }
+
+    fun searchAlbums(accessToken: String, refreshToken: String, filters: List<SpotifyFilter>, offset: Int = 0, limit: Int = 25): Page<SimpleAlbum>? {
+        val api = Api.builder()
+                .clientId(Spotify.CLIENT_ID)
+                .clientSecret(Spotify.CLIENT_SECRET)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .redirectURI("http://localhost:8080/callback")
+                .build()
+
+        return api.searchAlbums(filters.joinToString(" ") { f -> f.compile() })
+                .offset(offset)
+                .limit(limit)
+                .build()
+                .get()
+    }
+
+    fun searchArtists(accessToken: String, refreshToken: String, filters: List<SpotifyFilter>, offset: Int = 0, limit: Int = 25): Page<Artist>? {
+        val api = Api.builder()
+                .clientId(Spotify.CLIENT_ID)
+                .clientSecret(Spotify.CLIENT_SECRET)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .redirectURI("http://localhost:8080/callback")
+                .build()
+
+        return api.searchArtists(filters.joinToString(" ") { f -> f.compile() })
+                .offset(offset)
+                .limit(limit)
+                .build()
+                .get()
     }
 }
 

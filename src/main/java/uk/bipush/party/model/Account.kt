@@ -5,8 +5,7 @@ import io.ebean.Model
 import io.ebean.annotation.CreatedTimestamp
 import io.ebean.annotation.UpdatedTimestamp
 import java.sql.Timestamp
-import javax.persistence.Entity
-import javax.persistence.Id
+import javax.persistence.*
 
 @Entity
 class Account : Model() {
@@ -22,8 +21,58 @@ class Account : Model() {
     var accessToken: String? = null
     var refreshToken: String? = null
     var selectedDevice: String? = null
+    @OneToOne
+    var activeParty: Party? = null
     @CreatedTimestamp
     var created: Timestamp? = null
     @UpdatedTimestamp
     var updated: Timestamp? = null
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Account
+
+        if (id != other.id) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
+}
+
+class AccountResponse {
+    var id: Long = 0
+    var spotifyId: String? = null
+    var displayName: String? = null
+    var accessToken: String? = null
+    var refreshToken: String? = null
+    var selectedDevice: String? = null
+    var activeParty: PartyResponse? = null
+    var created: Timestamp? = null
+    var updated: Timestamp? = null
+}
+
+fun Account.response(withTokens: Boolean = false, withParty: Boolean = false): AccountResponse {
+    val self = this
+    return AccountResponse().apply {
+        this.id = self.id
+        this.spotifyId = self.spotifyId
+        this.displayName = self.displayName
+        this.selectedDevice = self.selectedDevice
+        this.created = self.created
+        this.updated = self.updated
+
+        if (withTokens) {
+            this.accessToken = self.accessToken
+            this.refreshToken = self.refreshToken
+        }
+        if (withParty) {
+            this.activeParty = self.activeParty?.response(false)
+        }
+    }
 }
