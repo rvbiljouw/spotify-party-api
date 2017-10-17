@@ -5,10 +5,11 @@ import spark.Spark
 import uk.bipush.party.model.Account
 import uk.bipush.party.util.JacksonResponseTransformer
 
+
 class AccountEndpoint : Endpoint {
 
     override fun init() {
-        Spark.get("/account", getAccount, JacksonResponseTransformer())
+        Spark.get("/api/v1/account", getAccount, JacksonResponseTransformer())
     }
 
     val getAccount = Route { req, res ->

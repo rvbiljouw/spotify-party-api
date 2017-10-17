@@ -24,7 +24,12 @@ class JacksonResponseTransformer : ResponseTransformer {
 
     @Throws(Exception::class)
     override fun render(model: Any): String {
-        return objectMapper.writeValueAsString(model)
+        try {
+            return objectMapper.writeValueAsString(model)
+        } catch(t: Throwable) {
+            t.printStackTrace()
+            return t.toString()
+        }
     }
 
 }

@@ -21,6 +21,7 @@ class Account : Model() {
     var displayName: String? = null
     var accessToken: String? = null
     var refreshToken: String? = null
+    var selectedDevice: String? = null
     @CreatedTimestamp
     var created: Timestamp? = null
     @UpdatedTimestamp
