@@ -52,7 +52,7 @@ class QueueEndpoint : Endpoint {
 
     val queueSong = Route { req, res ->
         val userId: Long? = req.session().attribute("user_id") ?: 0
-        val account = Account.finder.all()[0]
+        val account = Account.finder.byId(userId)
         if (account != null) {
             val party = account.activeParty
             if (party != null) {

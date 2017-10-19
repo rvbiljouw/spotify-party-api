@@ -110,7 +110,7 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
 
     val createParty = Route { req, res ->
         val userId: Long? = req.session().attribute("user_id") ?: 0
-        val account = Account.finder.all().get(0)
+        val account = Account.finder.byId(userId)
         if (account != null) {
             val request: CreatePartyRequest = mapper.readValue(req.body())
 
