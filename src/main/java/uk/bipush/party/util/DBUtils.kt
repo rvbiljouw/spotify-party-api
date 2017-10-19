@@ -1,8 +1,6 @@
 package uk.bipush.party.util
 
-import io.ebean.Ebean
-import io.ebean.Transaction
-import io.ebean.TxIsolation
+import io.ebean.*
 
 object DBUtils {
     fun <T> transactional(
@@ -30,5 +28,23 @@ object DBUtils {
         }
 
         return null
+    }
+
+    fun <T> batcherate(
+            getNextBatch: Query<T>,
+            processFn: (List<T>) -> Boolean,
+            startOffset: Int = 0,
+            limit: Int = 5000
+    ) {
+        var offset = startOffset
+        var pagedList: PagedList<T>? = null
+        while(pagedList == null || pagedList.hasNext()) {
+            pagedList = getNextBatch.setFirstRow(offset).setMaxRows(limit).findPagedList()
+            pagedList.loadCount()
+
+            if (processFn(pagedList.list)) {
+                offset += pagedList.pageSize
+            }
+        }
     }
 }

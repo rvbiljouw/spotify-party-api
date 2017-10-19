@@ -9,6 +9,7 @@ import uk.bipush.party.endpoint.net.PartyWebSocket
 import uk.bipush.party.handler.PartyHandler
 import uk.bipush.party.model.Party
 import uk.bipush.party.model.PartyStatus
+import uk.bipush.party.task.OfflineDeviceUpdater
 import uk.bipush.party.util.Spotify
 import uk.bipush.party.util.SpotifyFilter
 import java.util.concurrent.Executors
@@ -39,6 +40,7 @@ fun main(args: Array<String>) {
 
     endpoints.forEach { it.init() }
 
-    val executorService = Executors.newScheduledThreadPool(1)
+    val executorService = Executors.newScheduledThreadPool(2)
     executorService.scheduleAtFixedRate(partyHandler, 0, 2, TimeUnit.SECONDS)
+    executorService.scheduleAtFixedRate(OfflineDeviceUpdater(), 0, 2, TimeUnit.SECONDS)
 }

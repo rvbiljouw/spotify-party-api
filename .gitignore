@@ -1,3 +1,4 @@
+docker/tmp
 target/
 spotify_party_api_db.mv.db
 spotify_party_api_db.trace.db

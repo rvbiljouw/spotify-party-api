@@ -18,11 +18,13 @@ object Spotify {
     val CLIENT_SECRET = System.getenv("SPOTIFY_CLIENT_SECRET")
     val mapper = ObjectMapper().registerModule(KotlinModule())
 
-    fun play(track: String, token: String, retry: Boolean = true): String {
-        val requestR = mapOf("uris" to arrayOf(track))
+    fun play(track: String, token: String, deviceId: String?, offset: Int, retry: Boolean = true): String {
+        val requestR = mapOf("uris" to arrayOf(track), "offset" to mapOf("position" to offset))
         val reqBody = RequestBody.create(MediaType.parse("application/json"), mapper.writeValueAsString(requestR))
+
+        val url = "https://api.spotify.com/v1/me/player/play" + if (deviceId != null) "device_id=$deviceId" else ""
         val request = Request.Builder()
-                .url("https://api.spotify.com/v1/me/player/play")
+                .url(url)
                 .addHeader("Authorization", "Bearer $token")
                 .put(reqBody)
                 .build()
@@ -30,7 +32,7 @@ object Spotify {
         val response = client.newCall(request).execute()
         if (response.isSuccessful) {
             if (response.code() == 202 && retry) {
-                return play(track, token, false)
+                return play(track, token, deviceId, offset, false)
             }
             response.close()
             return response.message()

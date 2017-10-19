@@ -24,6 +24,12 @@ create table party (
   constraint pk_party primary key (id)
 );
 
+create table party_account (
+  party_id                      bigint not null,
+  account_id                    bigint not null,
+  constraint pk_party_account primary key (party_id,account_id)
+);
+
 create table party_queue_entry (
   id                            bigint auto_increment not null,
   party_id                      bigint,
@@ -46,6 +52,12 @@ alter table account add constraint fk_account_active_party_id foreign key (activ
 
 alter table party add constraint fk_party_owner_id foreign key (owner_id) references account (id) on delete restrict on update restrict;
 create index ix_party_owner_id on party (owner_id);
+
+alter table party_account add constraint fk_party_account_party foreign key (party_id) references party (id) on delete restrict on update restrict;
+create index ix_party_account_party on party_account (party_id);
+
+alter table party_account add constraint fk_party_account_account foreign key (account_id) references account (id) on delete restrict on update restrict;
+create index ix_party_account_account on party_account (account_id);
 
 alter table party_queue_entry add constraint fk_party_queue_entry_party_id foreign key (party_id) references party (id) on delete restrict on update restrict;
 create index ix_party_queue_entry_party_id on party_queue_entry (party_id);

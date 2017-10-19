@@ -3,6 +3,7 @@ package uk.bipush.party.model
 import io.ebean.Finder
 import io.ebean.Model
 import io.ebean.annotation.CreatedTimestamp
+import io.ebean.annotation.Index
 import io.ebean.annotation.UpdatedTimestamp
 import java.sql.Timestamp
 import javax.persistence.*
@@ -18,8 +19,10 @@ class Account : Model() {
     var id: Long = 0
     var spotifyId: String? = null
     var displayName: String? = null
+    @Index
     var accessToken: String? = null
     var refreshToken: String? = null
+    @Index
     var selectedDevice: String? = null
     @OneToOne
     var activeParty: Party? = null
