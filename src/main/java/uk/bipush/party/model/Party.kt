@@ -22,7 +22,7 @@ class Party: Model() {
     var id: Long = 0
     @ManyToOne
     var owner: Account? = null
-    @OneToMany
+    @ManyToMany
     var members: MutableSet<Account> = mutableSetOf()
     var name: String? = ""
     var description: String? = ""
@@ -37,7 +37,7 @@ class Party: Model() {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as Account
+        other as Party
 
         if (id != other.id) return false
 
@@ -60,12 +60,15 @@ class PartyResponse {
     var updated: DateTime? = null
 }
 
-fun Party.response(withTokens: Boolean = false): PartyResponse {
+fun Party.response(withTokens: Boolean = false, withChildren: Boolean = true): PartyResponse {
     val self = this
     return PartyResponse().apply {
         this.id = self.id
-        this.owner = self.owner?.response(withTokens, false)
-        this.members = self.members.map { m -> m.response(false, false) }.toMutableSet()
+        if (withChildren) {
+            this.owner = self.owner?.response(withTokens, false)
+            this.members = self.members.map { m -> m.response(false, false) }.toMutableSet()
+        }
+
         this.name = self.name
         this.description = self.description
         this.status = self.status

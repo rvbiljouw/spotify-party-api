@@ -7,24 +7,37 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import spark.Route
 import spark.Spark
-import uk.bipush.party.endpoint.net.PartyHandler
-import uk.bipush.party.model.Account
-import uk.bipush.party.model.Party
-import uk.bipush.party.model.PartyQueueEntry
-import uk.bipush.party.model.response
+import uk.bipush.party.endpoint.net.PartyWebSocket
+import uk.bipush.party.handler.PartyHandler
+import uk.bipush.party.model.*
 import uk.bipush.party.util.DBUtils
 import uk.bipush.party.util.JacksonResponseTransformer
 
-class PartyEndpoint : Endpoint {
+class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
     private val mapper = ObjectMapper()
             .registerModule(KotlinModule())
             .registerModule(JodaModule())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
     override fun init() {
+        Spark.get("/api/v1/get", myParties, JacksonResponseTransformer())
         Spark.put("/api/v1/party", joinParty, JacksonResponseTransformer())
         Spark.delete("/api/v1/party", leaveParty, JacksonResponseTransformer())
         Spark.post("/api/v1/party", createParty, JacksonResponseTransformer())
+    }
+
+    val myParties = Route { req, res ->
+        val userId: Long? = req.session().attribute("user_id") ?: 0
+        val account = Account.finder.byId(userId)
+        if (account != null) {
+            val parties = Party.finder.query().where().eq("members.id", account.id).findList()
+
+            MyPartiesResponse(account.activeParty?.response(false, false),
+                    parties.map { p -> p.response(false, false)}.toSet())
+        } else {
+            res.status(403)
+            mapOf("error" to "You're not logged in.")
+        }
     }
 
     val joinParty = Route { req, res ->
@@ -43,7 +56,9 @@ class PartyEndpoint : Endpoint {
                     account.update()
                 })
 
-                PartyHandler.sendPartyUpdate(party, party.members)
+                PartyWebSocket.sendPartyUpdate(party, party.members)
+
+                partyHandler.onPartyJoin(account, party)
 
                 party.response(false)
             } else {
@@ -80,7 +95,7 @@ class PartyEndpoint : Endpoint {
                     account.update()
                 })
 
-                PartyHandler.sendPartyUpdate(party, party.members)
+                PartyWebSocket.sendPartyUpdate(party, party.members)
 
                 party.response(false)
             } else {
@@ -114,6 +129,8 @@ class PartyEndpoint : Endpoint {
                 account.update()
             })
 
+            partyHandler.addParty(party.id)
+
             party.response(true)
         } else {
             res.status(403)
@@ -125,3 +142,5 @@ class PartyEndpoint : Endpoint {
 data class CreatePartyRequest(val name: String, val description: String)
 
 data class JoinPartyRequest(val id: Long)
+
+data class MyPartiesResponse(val activeParty: PartyResponse?, val parties: Set<PartyResponse>?)

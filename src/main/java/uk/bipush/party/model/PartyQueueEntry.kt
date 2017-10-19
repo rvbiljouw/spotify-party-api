@@ -8,7 +8,7 @@ import org.joda.time.DateTime
 import javax.persistence.*
 
 enum class RequestStatus {
-    PLAYED, IN_QUEUE, CANCELLED
+    PLAYED, PLAYING, IN_QUEUE, CANCELLED
 }
 
 @Entity
@@ -27,7 +27,9 @@ class PartyQueueEntry: Model() {
     var artist: String? = ""
     var title: String? = ""
     var thumbnail: String? = ""
+    var duration: Int = 0
     var uri: String? = ""
+    var playedAt: Long = 0
     var votes: Int = 0
     @Enumerated(value = EnumType.STRING)
     var status: RequestStatus = RequestStatus.IN_QUEUE
@@ -61,6 +63,8 @@ class PartyQueueEntryResponse {
     var thumbnail: String? = ""
     var uri: String? = ""
     var votes: Int = 0
+    var playedAt: Long = 0
+    var duration: Int = 0
     var status: RequestStatus? = null
     var created: DateTime? = null
     var updated: DateTime? = null
@@ -77,6 +81,8 @@ fun PartyQueueEntry.response(withTokens: Boolean = false): PartyQueueEntryRespon
         this.thumbnail = self.thumbnail
         this.uri = self.uri
         this.votes = self.votes
+        this.playedAt = self.playedAt
+        this.duration = self.duration
         this.status = self.status
         this.created = self.created
         this.updated = self.updated

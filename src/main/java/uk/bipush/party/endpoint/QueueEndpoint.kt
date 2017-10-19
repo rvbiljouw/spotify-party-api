@@ -7,7 +7,7 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import spark.Route
 import spark.Spark
-import uk.bipush.party.endpoint.net.PartyHandler
+import uk.bipush.party.endpoint.net.PartyWebSocket
 import uk.bipush.party.model.Account
 import uk.bipush.party.model.Party
 import uk.bipush.party.model.PartyQueueEntry
@@ -32,11 +32,14 @@ class QueueEndpoint : Endpoint {
     val getQueue = Route { req, res ->
         val userId: Long? = req.session().attribute("user_id") ?: 0
         val partyId: Long? = req.queryParams("party")?.toLong()
+        val limit = req.queryParams("limit")?.toInt() ?: 25
+        val offset = req.queryParams("offset")?.toInt() ?: 0
+
         val account = Account.finder.byId(userId)
         if (account != null) {
             val party = if (partyId != null) Party.finder.byId(partyId)  else account.activeParty
             if (party != null) {
-                PartyQueue.forParty(party).response(false)
+                PartyQueue.forParty(party, offset, limit).response(false)
             } else {
                 res.status(403)
                 mapOf("error" to "You have no active party.")
@@ -49,7 +52,7 @@ class QueueEndpoint : Endpoint {
 
     val queueSong = Route { req, res ->
         val userId: Long? = req.session().attribute("user_id") ?: 0
-        val account = Account.finder.byId(userId)
+        val account = Account.finder.all()[0]
         if (account != null) {
             val party = account.activeParty
             if (party != null) {
@@ -60,15 +63,16 @@ class QueueEndpoint : Endpoint {
                     this.member = account
                     this.artist = request.artist
                     this.title = request.title
+                    this.duration = request.duration
                     this.thumbnail = request.thumbnail
                     this.uri = request.uri
                 }
 
                 entry.save()
 
-                PartyHandler.sendQueueUpdate(PartyQueue.forParty(party), party.members)
+                PartyWebSocket.sendQueueUpdate(PartyQueue.forParty(party), party.members)
 
-                entry
+                entry.response(false)
             } else {
                 res.status(403)
                 mapOf("error" to "You have no active party.")
@@ -94,9 +98,9 @@ class QueueEndpoint : Endpoint {
                     entry.votes = newVotes
                     entry.save()
 
-                    PartyHandler.sendQueueUpdate(PartyQueue.forParty(party), party.members)
+                    PartyWebSocket.sendQueueUpdate(PartyQueue.forParty(party), party.members)
 
-                    entry
+                    entry.response(false)
                 } else {
                     res.status(404)
                     mapOf("error" to "Queue entry not found.")
@@ -112,6 +116,6 @@ class QueueEndpoint : Endpoint {
     }
 }
 
-data class QueueSongRequest(val artist: String, val title: String, val thumbnail: String, val uri: String)
+data class QueueSongRequest(val artist: String, val title: String, val thumbnail: String, val uri: String, val duration: Int)
 
 data class VoteSongRequest(val id: Long, val up: Boolean)

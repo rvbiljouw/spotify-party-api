@@ -57,7 +57,7 @@ class AccountResponse {
     var updated: Timestamp? = null
 }
 
-fun Account.response(withTokens: Boolean = false, withParty: Boolean = false): AccountResponse {
+fun Account.response(withTokens: Boolean = false, withChildren: Boolean = false): AccountResponse {
     val self = this
     return AccountResponse().apply {
         this.id = self.id
@@ -71,8 +71,8 @@ fun Account.response(withTokens: Boolean = false, withParty: Boolean = false): A
             this.accessToken = self.accessToken
             this.refreshToken = self.refreshToken
         }
-        if (withParty) {
-            this.activeParty = self.activeParty?.response(false)
+        if (withChildren) {
+            this.activeParty = self.activeParty?.response(false, false)
         }
     }
 }

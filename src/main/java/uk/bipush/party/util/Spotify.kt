@@ -30,7 +30,7 @@ object Spotify {
         println(track)
         val response = client.newCall(request).execute()
         if (response.isSuccessful) {
-            println(response.message())
+            println(response)
             response.close()
             return response.message()
         } else {

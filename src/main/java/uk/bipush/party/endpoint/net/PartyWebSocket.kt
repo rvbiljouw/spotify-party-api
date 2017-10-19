@@ -21,7 +21,7 @@ import uk.bipush.party.queue.response
 
 
 @WebSocket
-class PartyHandler {
+class PartyWebSocket {
 
     companion object {
         private val mapper = ObjectMapper()
