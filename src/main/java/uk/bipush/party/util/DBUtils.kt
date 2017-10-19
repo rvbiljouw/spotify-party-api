@@ -47,4 +47,14 @@ object DBUtils {
             }
         }
     }
+
+    fun <T> applyFilters(query: Query<T>, filters: List<Filter>?): io.ebean.Query<T> {
+        if (filters == null || filters.isEmpty()) {
+            return query
+        }
+
+        val exprList = query.where()
+        filters.forEach { exprList.add(it.compile()) }
+        return exprList.query()
+    }
 }
