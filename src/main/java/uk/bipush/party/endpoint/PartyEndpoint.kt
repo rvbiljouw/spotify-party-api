@@ -73,26 +73,29 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
 
     val leaveParty = Route { req, res ->
         val userId: Long? = req.session().attribute("user_id") ?: 0
+        val partyId: Long? = req.queryParams("partyId")?.toLong()
+        val remove: Boolean = req.queryParamOrDefault("remove", "false").toBoolean()
         val account = Account.finder.byId(userId)
         if (account != null) {
-            val request: JoinPartyRequest = mapper.readValue(req.body())
-
             val party = Party.finder.query()
                     .where()
-                    .eq("id", request.id)
+                    .eq("id", partyId)
                     .eq("members.id", account.id)
                     .findUnique()
 
             if (party != null) {
                 DBUtils.transactional({
-                    party.members.remove(account)
+                    if (remove) {
+                        party.members.remove(account)
+                        party.update()
+                    }
+                        
 
                     if (account.activeParty == party) {
                         account.activeParty = null
-                    }
 
-                    party.update()
-                    account.update()
+                        account.update()
+                    }
                 })
 
                 PartyWebSocket.sendPartyUpdate(party, party.members)
