@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 class SpotifyFilter {
 
     enum class Type {
-        NOT_EQUALS, EQUALS, CONTAINS
+        NOT_EQUALS, EQUALS, CONTAINS, OR, STARTS_WITH
     }
 
     enum class SpotifyField {
@@ -17,6 +17,7 @@ class SpotifyFilter {
     var type: Type? = null
     var fieldName: SpotifyField? = null
     var value: String? = null
+    var children: List<SpotifyFilter> = listOf()
 
     override fun toString(): String {
         return "Filter{" +
@@ -34,7 +35,13 @@ class SpotifyFilter {
 
             Type.EQUALS -> return "${fieldName?.name?.toLowerCase()}:${value}"
 
-            Type.CONTAINS -> return  "${fieldName?.name?.toLowerCase()}:*${value}*"
+            Type.CONTAINS -> return "${fieldName?.name?.toLowerCase()}:*${value}*"
+
+            Type.STARTS_WITH -> return "${fieldName?.name?.toLowerCase()}:${value}*"
+
+            Type.OR -> {
+                return children.map { it.compile() }.joinToString(" OR ")
+            }
 
             else -> throw IllegalArgumentException(String.format("Unsupported expression type: %s", type))
         }

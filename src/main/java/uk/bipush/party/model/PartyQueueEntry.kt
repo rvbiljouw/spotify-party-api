@@ -6,13 +6,14 @@ import io.ebean.annotation.CreatedTimestamp
 import io.ebean.annotation.UpdatedTimestamp
 import org.joda.time.DateTime
 import javax.persistence.*
+import javax.persistence.EnumType.*
 
 enum class RequestStatus {
     PLAYED, PLAYING, IN_QUEUE, CANCELLED
 }
 
 @Entity
-class PartyQueueEntry: Model() {
+class PartyQueueEntry : Model() {
 
     companion object {
         val finder: Finder<Long, PartyQueueEntry> = Finder(PartyQueueEntry::class.java)
@@ -31,7 +32,9 @@ class PartyQueueEntry: Model() {
     var uri: String? = ""
     var playedAt: Long = 0
     var votes: Int = 0
-    @Enumerated(value = EnumType.STRING)
+    var upvotes: Int = 0
+    var downvotes: Int = 0
+    @Enumerated(value = STRING)
     var status: RequestStatus = RequestStatus.IN_QUEUE
     @CreatedTimestamp
     var created: DateTime? = null
@@ -52,6 +55,12 @@ class PartyQueueEntry: Model() {
     override fun hashCode(): Int {
         return id.hashCode()
     }
+
+    override fun toString(): String {
+        return "PartyQueueEntry(id=$id, party=$party, member=$member, artist=$artist, title=$title, thumbnail=$thumbnail, duration=$duration, uri=$uri, playedAt=$playedAt, votes=$votes, status=$status, created=$created, updated=$updated)"
+    }
+
+
 }
 
 class PartyQueueEntryResponse {
@@ -63,6 +72,8 @@ class PartyQueueEntryResponse {
     var thumbnail: String? = ""
     var uri: String? = ""
     var votes: Int = 0
+    var upvotes: Int = 0
+    var downvotes: Int = 0
     var playedAt: Long = 0
     var duration: Int = 0
     var status: RequestStatus? = null
@@ -81,6 +92,8 @@ fun PartyQueueEntry.response(withTokens: Boolean = false): PartyQueueEntryRespon
         this.thumbnail = self.thumbnail
         this.uri = self.uri
         this.votes = self.votes
+        this.upvotes = self.upvotes
+        this.downvotes = self.downvotes
         this.playedAt = self.playedAt
         this.duration = self.duration
         this.status = self.status

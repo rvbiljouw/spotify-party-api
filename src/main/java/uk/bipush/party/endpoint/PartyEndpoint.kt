@@ -28,6 +28,7 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
         Spark.put("/api/v1/party", joinParty, JacksonResponseTransformer())
         Spark.delete("/api/v1/party", leaveParty, JacksonResponseTransformer())
         Spark.post("/api/v1/party", createParty, JacksonResponseTransformer())
+        Spark.put("/api/v1/party/activate", changeActiveParty, JacksonResponseTransformer())
     }
 
     val getAll = Route { req, res ->
@@ -70,7 +71,7 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
             val parties = Party.finder.query().where().eq("members.id", account.id).findList()
 
             MyPartiesResponse(account.activeParty?.response(false, false),
-                    parties.map { p -> p.response(false, false)}.toSet())
+                    parties.map { p -> p.response(false, false) }.toSet())
         } else {
             res.status(403)
             mapOf("error" to "You're not logged in.")
@@ -175,6 +176,29 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
         } else {
             res.status(403)
             mapOf("error" to "You're not logged in.")
+        }
+    }
+
+    val changeActiveParty = Route { req, res ->
+        val userId: Long? = req.session().attribute("user_id") ?: 0
+        val partyId: Long? = req.queryParams("partyId").toLong()
+        val account = Account.finder.byId(userId)
+        if (account != null) {
+            val party = Party.finder.query()
+                    .where()
+                    .eq("id", partyId)
+                    .eq("members.id", account.id)
+                    .findUnique()
+            if (party != null) {
+                account.activeParty = party
+                account.save()
+
+                party.response(false, false)
+            } else {
+                res.status(404)
+            }
+        } else {
+            res.status(403)
         }
     }
 }

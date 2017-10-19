@@ -41,6 +41,8 @@ create table party_queue_entry (
   uri                           varchar(255),
   played_at                     bigint not null,
   votes                         integer not null,
+  upvotes                       integer not null,
+  downvotes                     integer not null,
   status                        varchar(9),
   created                       timestamp not null,
   updated                       timestamp not null,
@@ -48,6 +50,18 @@ create table party_queue_entry (
   constraint pk_party_queue_entry primary key (id)
 );
 
+create table party_queue_vote (
+  id                            bigint auto_increment not null,
+  account_id                    bigint,
+  entry_id                      bigint,
+  upvote                        boolean,
+  created                       timestamp not null,
+  updated                       timestamp not null,
+  constraint pk_party_queue_vote primary key (id)
+);
+
+create index ix_account_access_token on account (access_token);
+create index ix_account_selected_device on account (selected_device);
 alter table account add constraint fk_account_active_party_id foreign key (active_party_id) references party (id) on delete restrict on update restrict;
 
 alter table party add constraint fk_party_owner_id foreign key (owner_id) references account (id) on delete restrict on update restrict;
@@ -64,4 +78,10 @@ create index ix_party_queue_entry_party_id on party_queue_entry (party_id);
 
 alter table party_queue_entry add constraint fk_party_queue_entry_member_id foreign key (member_id) references account (id) on delete restrict on update restrict;
 create index ix_party_queue_entry_member_id on party_queue_entry (member_id);
+
+alter table party_queue_vote add constraint fk_party_queue_vote_account_id foreign key (account_id) references account (id) on delete restrict on update restrict;
+create index ix_party_queue_vote_account_id on party_queue_vote (account_id);
+
+alter table party_queue_vote add constraint fk_party_queue_vote_entry_id foreign key (entry_id) references party_queue_entry (id) on delete restrict on update restrict;
+create index ix_party_queue_vote_entry_id on party_queue_vote (entry_id);
 

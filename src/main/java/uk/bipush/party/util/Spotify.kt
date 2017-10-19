@@ -35,6 +35,11 @@ object Spotify {
                 return play(track, token, deviceId, offset, false)
             }
             response.close()
+            try {
+                throw Exception("Asdfasdf")
+            } catch(t: Exception) {
+                t.printStackTrace()
+            }
             return response.message()
         } else {
             response.close()
@@ -78,6 +83,7 @@ object Spotify {
                 .redirectURI("http://localhost:8080/callback")
                 .build()
 
+        println(filters.joinToString(" ") { f -> f.compile() })
         return api.searchTracks(filters.joinToString(" ") { f -> f.compile() })
                 .offset(offset)
                 .limit(limit)

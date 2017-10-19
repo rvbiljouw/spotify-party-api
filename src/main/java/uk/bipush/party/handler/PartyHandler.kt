@@ -12,7 +12,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-class PartyHandler: Runnable {
+class PartyHandler : Runnable {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -39,11 +39,11 @@ class PartyHandler: Runnable {
             } else {
                 val queue = PartyQueue.forParty(party, 0, 2)
 
-                if (!queue.entries.isEmpty()) {
+                if (!queue.entries.isEmpty() || queue.nowPlaying != null) {
                     if (queue.nowPlaying == null) {
                         val next = queue.entries.iterator().next()
 
-                        party.members.filter { account -> account.activeParty == party}.forEach { account ->
+                        party.members.filter { account -> account.activeParty == party }.forEach { account ->
                             playSong(account, next, 0)
                         }
 

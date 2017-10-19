@@ -11,7 +11,7 @@ class PartyQueue {
                     .eq("status", RequestStatus.IN_QUEUE)
                     .setFirstRow(offset)
                     .setMaxRows(limit)
-                    .order().asc("votes")
+                    .order().desc("votes")
                     .order().asc("id")
                     .findList()
 
@@ -22,6 +22,12 @@ class PartyQueue {
                     .findUnique()
 
             return PartyQueue().apply {
+                val list = PartyQueueEntry.finder.query()
+                        .where()
+                        .eq("party.id", party.id)
+                        .findList()
+                println(list)
+
                 this.nowPlaying = nowPlaying
                 this.entries = entries.toSet()
                 this.party = party

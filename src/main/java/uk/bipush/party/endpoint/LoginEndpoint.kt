@@ -80,7 +80,7 @@ class LoginEndpoint : Endpoint {
                     account.save()
 
                     req.session(true).attribute("user_id", account.id)
-                    account
+                    res.redirect("http://localhost:4200")
                 }
             }
         } catch (t: Throwable) {

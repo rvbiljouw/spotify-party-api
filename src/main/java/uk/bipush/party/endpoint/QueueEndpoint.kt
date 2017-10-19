@@ -8,10 +8,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import spark.Route
 import spark.Spark
 import uk.bipush.party.endpoint.net.PartyWebSocket
-import uk.bipush.party.model.Account
-import uk.bipush.party.model.Party
-import uk.bipush.party.model.PartyQueueEntry
-import uk.bipush.party.model.response
+import uk.bipush.party.model.*
 import uk.bipush.party.queue.PartyQueue
 import uk.bipush.party.queue.response
 import uk.bipush.party.util.DBUtils
@@ -37,7 +34,7 @@ class QueueEndpoint : Endpoint {
 
         val account = Account.finder.byId(userId)
         if (account != null) {
-            val party = if (partyId != null) Party.finder.byId(partyId)  else account.activeParty
+            val party = if (partyId != null) Party.finder.byId(partyId) else account.activeParty
             if (party != null) {
                 PartyQueue.forParty(party, offset, limit).response(false)
             } else {
@@ -94,13 +91,33 @@ class QueueEndpoint : Endpoint {
                 val entry = PartyQueueEntry.finder.byId(request.id)
 
                 if (entry != null) {
-                    val newVotes = if (request.up) entry.votes - 1 else entry.votes + 1
-                    entry.votes = newVotes
-                    entry.save()
+                    var vote = PartyQueueVote.finder.query().where()
+                            .eq("account.id", account.id)
+                            .eq("entry.id", entry.id)
+                            .findUnique()
+                    if (vote == null) {
+                        vote = PartyQueueVote().apply {
+                            this.account = account
+                            this.entry = entry
+                            this.upvote = request.up
+                        }
+                        vote.save()
 
-                    PartyWebSocket.sendQueueUpdate(PartyQueue.forParty(party), party.members)
+                        if (request.up) {
+                            entry.upvotes++
+                        } else {
+                            entry.downvotes++
+                        }
+                        entry.votes = entry.upvotes - entry.downvotes
+                        entry.save()
 
-                    entry.response(false)
+                        PartyWebSocket.sendQueueUpdate(PartyQueue.forParty(party), party.members)
+
+                        entry.response(false)
+                    } else {
+                        res.status(409)
+                        mapOf("error" to "Sorry, you've already voted on this queue entry.")
+                    }
                 } else {
                     res.status(404)
                     mapOf("error" to "Queue entry not found.")
