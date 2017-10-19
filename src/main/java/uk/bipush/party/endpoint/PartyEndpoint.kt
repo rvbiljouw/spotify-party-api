@@ -89,7 +89,7 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
                         party.members.remove(account)
                         party.update()
                     }
-                        
+
 
                     if (account.activeParty == party) {
                         account.activeParty = null
