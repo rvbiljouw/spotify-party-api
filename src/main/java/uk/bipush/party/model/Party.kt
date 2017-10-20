@@ -24,6 +24,9 @@ class Party: Model() {
     var owner: Account? = null
     @ManyToMany
     var members: MutableSet<Account> = mutableSetOf()
+    @ManyToMany
+    @JoinTable(name = "active_party_members")
+    var activeMembers: MutableSet<Account> = mutableSetOf()
     var name: String? = ""
     var description: String? = ""
     @Enumerated(value = EnumType.STRING)
@@ -52,6 +55,7 @@ class Party: Model() {
 class PartyResponse {
     var id: Long = 0
     var owner: AccountResponse? = null
+    var activeMembers: MutableSet<AccountResponse> = mutableSetOf()
     var members: MutableSet<AccountResponse> = mutableSetOf()
     var name: String? = ""
     var description: String? = ""
@@ -67,6 +71,7 @@ fun Party.response(withTokens: Boolean = false, withChildren: Boolean = true): P
         if (withChildren) {
             this.owner = self.owner?.response(withTokens, false)
             this.members = self.members.map { m -> m.response(false, false) }.toMutableSet()
+            this.activeMembers = self.activeMembers.map { m -> m.response(false, false) }.toMutableSet()
         }
 
         this.name = self.name

@@ -5,6 +5,7 @@ import spark.Spark
 import uk.bipush.party.model.Account
 import uk.bipush.party.model.response
 import uk.bipush.party.util.JacksonResponseTransformer
+import java.util.*
 
 
 class AccountEndpoint : Endpoint {
@@ -17,7 +18,11 @@ class AccountEndpoint : Endpoint {
         val userId: Long? = req.session().attribute("user_id")
         if (userId != null) {
             val account = Account.finder.byId(userId)
-            account?.response(false, false)
+
+            account?.loginToken = UUID.randomUUID().toString()
+            account?.update()
+
+            account?.response(false, false, true)
         } else {
             res.status(403)
             mapOf("error" to "You're not logged in.")

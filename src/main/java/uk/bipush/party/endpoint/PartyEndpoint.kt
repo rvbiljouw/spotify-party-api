@@ -88,6 +88,7 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
             if (party != null) {
                 DBUtils.transactional({
                     party.members.add(account)
+                    party.activeMembers.add(account)
                     account.activeParty = party
 
                     party.update()
@@ -123,10 +124,11 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
 
             if (party != null) {
                 DBUtils.transactional({
+                    party.activeMembers.remove(account)
                     if (remove) {
                         party.members.remove(account)
-                        party.update()
                     }
+                    party.update()
 
 
                     if (account.activeParty == party) {

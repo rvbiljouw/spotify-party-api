@@ -36,7 +36,6 @@ class TokenRefresher: Runnable {
                         .build().get()
                 acc.accessToken = newToken.accessToken
                 acc.update()
-                println("Updated ${acc.displayName}")
             })
             offset += results.list.size
         }

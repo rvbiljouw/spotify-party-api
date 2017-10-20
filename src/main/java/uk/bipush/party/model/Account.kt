@@ -8,6 +8,9 @@ import io.ebean.annotation.UpdatedTimestamp
 import java.sql.Timestamp
 import javax.persistence.*
 
+enum class AccountType {
+    REGULAR, STAFF;
+}
 @Entity
 class Account : Model() {
 
@@ -19,6 +22,7 @@ class Account : Model() {
     var id: Long = 0
     var spotifyId: String? = null
     var displayName: String? = null
+    var loginToken: String? = null
     @Index
     var accessToken: String? = null
     var refreshToken: String? = null
@@ -26,6 +30,8 @@ class Account : Model() {
     var selectedDevice: String? = null
     @ManyToOne
     var activeParty: Party? = null
+    @Enumerated(value = EnumType.STRING)
+    var accountType: AccountType = AccountType.REGULAR
     @CreatedTimestamp
     var created: Timestamp? = null
     @UpdatedTimestamp
@@ -52,6 +58,7 @@ class AccountResponse {
     var id: Long = 0
     var spotifyId: String? = null
     var displayName: String? = null
+    var loginToken: String? = null
     var accessToken: String? = null
     var refreshToken: String? = null
     var selectedDevice: String? = null
@@ -60,7 +67,7 @@ class AccountResponse {
     var updated: Timestamp? = null
 }
 
-fun Account.response(withTokens: Boolean = false, withChildren: Boolean = false): AccountResponse {
+fun Account.response(withTokens: Boolean = false, withChildren: Boolean = false, withLoginToken: Boolean = false): AccountResponse {
     val self = this
     return AccountResponse().apply {
         this.id = self.id
@@ -69,6 +76,10 @@ fun Account.response(withTokens: Boolean = false, withChildren: Boolean = false)
         this.selectedDevice = self.selectedDevice
         this.created = self.created
         this.updated = self.updated
+
+        if (withLoginToken) {
+            this.loginToken = self.loginToken
+        }
 
         if (withTokens) {
             this.accessToken = self.accessToken

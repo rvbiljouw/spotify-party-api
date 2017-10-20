@@ -10,6 +10,12 @@ drop index if exists ix_party_account_party;
 alter table party_account drop constraint if exists fk_party_account_account;
 drop index if exists ix_party_account_account;
 
+alter table active_party_members drop constraint if exists fk_active_party_members_party;
+drop index if exists ix_active_party_members_party;
+
+alter table active_party_members drop constraint if exists fk_active_party_members_account;
+drop index if exists ix_active_party_members_account;
+
 alter table party_queue_entry drop constraint if exists fk_party_queue_entry_party_id;
 drop index if exists ix_party_queue_entry_party_id;
 
@@ -27,6 +33,8 @@ drop table if exists account;
 drop table if exists party;
 
 drop table if exists party_account;
+
+drop table if exists active_party_members;
 
 drop table if exists party_queue_entry;
 

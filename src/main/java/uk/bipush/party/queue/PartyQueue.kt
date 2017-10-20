@@ -26,7 +26,6 @@ class PartyQueue {
                         .where()
                         .eq("party.id", party.id)
                         .findList()
-                println(list)
 
                 this.nowPlaying = nowPlaying
                 this.entries = entries.toSet()

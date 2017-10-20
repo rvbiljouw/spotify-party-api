@@ -33,7 +33,6 @@ class LoginEndpoint : Endpoint {
         val scopes = listOf<String>("user-modify-playback-state", "user-read-playback-state")
         val authorizeURL = api.createAuthorizeURL(scopes, "secret")
 
-        println(authorizeURL)
         res.redirect(authorizeURL)
     }
 
@@ -70,7 +69,10 @@ class LoginEndpoint : Endpoint {
                             this.accessToken = credentials!!.accessToken
                             this.refreshToken = credentials!!.refreshToken
                             this.spotifyId = spotifyUser.id
-                            this.displayName = spotifyUser.displayName
+                            this.displayName = if (spotifyUser.displayName?.isNotBlank() == true)
+                                spotifyUser.displayName
+                            else
+                                spotifyUser.id
                         }
                     } else {
                         account.accessToken = credentials.accessToken
@@ -86,7 +88,7 @@ class LoginEndpoint : Endpoint {
         } catch (t: Throwable) {
             t.printStackTrace()
             val exId = UUID.randomUUID().toString()
-            println("$exId: ${t.toString()}")
+
             res.status(500)
             mapOf("error" to "An error occurred - $exId")
         }

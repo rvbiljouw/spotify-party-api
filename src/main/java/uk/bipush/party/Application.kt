@@ -50,7 +50,10 @@ fun main(args: Array<String>) {
             MusicEndpoint(), PartyEndpoint(partyHandler), QueueEndpoint())
     Spark.exception(Exception::class.java, { t, request, response ->
         t.printStackTrace()
+
+        response.status(500)
     })
+
     Spark.port(8080)
 
     Spark.webSocket("/api/v1/partySocket", PartyWebSocket::class.java)

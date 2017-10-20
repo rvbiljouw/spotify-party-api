@@ -2,20 +2,17 @@ create table account (
   id                            bigint auto_increment not null,
   spotify_id                    varchar(255),
   display_name                  varchar(255),
+  login_token                   varchar(255),
   access_token                  varchar(255),
   refresh_token                 varchar(255),
   selected_device               varchar(255),
   active_party_id               bigint,
+  account_type                  varchar(7),
   created                       datetime(6) not null,
   updated                       datetime(6) not null,
+  constraint ck_account_account_type check ( account_type in ('REGULAR','STAFF')),
   constraint uq_account_active_party_id unique (active_party_id),
   constraint pk_account primary key (id)
-);
-
-create table account_party (
-  account_id                    bigint not null,
-  party_id                      bigint not null,
-  constraint pk_account_party primary key (account_id,party_id)
 );
 
 create table party (
@@ -36,6 +33,12 @@ create table party_account (
   constraint pk_party_account primary key (party_id,account_id)
 );
 
+create table active_party_members (
+  party_id                      bigint not null,
+  account_id                    bigint not null,
+  constraint pk_active_party_members primary key (party_id,account_id)
+);
+
 create table party_queue_entry (
   id                            bigint auto_increment not null,
   party_id                      bigint,
@@ -47,6 +50,8 @@ create table party_queue_entry (
   uri                           varchar(255),
   played_at                     bigint not null,
   votes                         integer not null,
+  upvotes                       integer not null,
+  downvotes                     integer not null,
   status                        varchar(9),
   created                       datetime(6) not null,
   updated                       datetime(6) not null,
@@ -54,13 +59,19 @@ create table party_queue_entry (
   constraint pk_party_queue_entry primary key (id)
 );
 
+create table party_queue_vote (
+  id                            bigint auto_increment not null,
+  account_id                    bigint,
+  entry_id                      bigint,
+  upvote                        tinyint(1) default 0,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
+  constraint pk_party_queue_vote primary key (id)
+);
+
+create index ix_account_access_token on account (access_token);
+create index ix_account_selected_device on account (selected_device);
 alter table account add constraint fk_account_active_party_id foreign key (active_party_id) references party (id) on delete restrict on update restrict;
-
-alter table account_party add constraint fk_account_party_account foreign key (account_id) references account (id) on delete restrict on update restrict;
-create index ix_account_party_account on account_party (account_id);
-
-alter table account_party add constraint fk_account_party_party foreign key (party_id) references party (id) on delete restrict on update restrict;
-create index ix_account_party_party on account_party (party_id);
 
 alter table party add constraint fk_party_owner_id foreign key (owner_id) references account (id) on delete restrict on update restrict;
 create index ix_party_owner_id on party (owner_id);
@@ -71,9 +82,21 @@ create index ix_party_account_party on party_account (party_id);
 alter table party_account add constraint fk_party_account_account foreign key (account_id) references account (id) on delete restrict on update restrict;
 create index ix_party_account_account on party_account (account_id);
 
+alter table active_party_members add constraint fk_active_party_members_party foreign key (party_id) references party (id) on delete restrict on update restrict;
+create index ix_active_party_members_party on active_party_members (party_id);
+
+alter table active_party_members add constraint fk_active_party_members_account foreign key (account_id) references account (id) on delete restrict on update restrict;
+create index ix_active_party_members_account on active_party_members (account_id);
+
 alter table party_queue_entry add constraint fk_party_queue_entry_party_id foreign key (party_id) references party (id) on delete restrict on update restrict;
 create index ix_party_queue_entry_party_id on party_queue_entry (party_id);
 
 alter table party_queue_entry add constraint fk_party_queue_entry_member_id foreign key (member_id) references account (id) on delete restrict on update restrict;
 create index ix_party_queue_entry_member_id on party_queue_entry (member_id);
+
+alter table party_queue_vote add constraint fk_party_queue_vote_account_id foreign key (account_id) references account (id) on delete restrict on update restrict;
+create index ix_party_queue_vote_account_id on party_queue_vote (account_id);
+
+alter table party_queue_vote add constraint fk_party_queue_vote_entry_id foreign key (entry_id) references party_queue_entry (id) on delete restrict on update restrict;
+create index ix_party_queue_vote_entry_id on party_queue_vote (entry_id);
 

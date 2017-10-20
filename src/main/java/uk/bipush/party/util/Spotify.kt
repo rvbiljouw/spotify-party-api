@@ -80,7 +80,6 @@ object Spotify {
                 .redirectURI("${Spotify.API_HOST}/callback")
                 .build()
 
-        println(filters.joinToString(" ") { f -> f.compile() })
         return api.searchTracks(filters.joinToString(" ") { f -> f.compile() })
                 .offset(offset)
                 .limit(limit)
