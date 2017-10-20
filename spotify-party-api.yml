@@ -24,6 +24,12 @@ spec:
               cpu: 1000m
               memory: 960M
           env:
+            - name: API_HOST
+              value: http://partify.quirlion.com
+            - name: SPOTIFY_CLIENT_ID
+              value: 10a4963dcc5c472b8d5c52004d08cb43
+            - name: SPOTIFY_CLIENT_SECRET
+              value: cbabbc30e3aa46939524689d9421a808
             - name: NODE_HOSTNAME
               valueFrom:
                fieldRef:

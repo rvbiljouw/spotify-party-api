@@ -17,6 +17,7 @@ object Spotify {
     val CLIENT_ID = System.getenv("SPOTIFY_CLIENT_ID")
     val CLIENT_SECRET = System.getenv("SPOTIFY_CLIENT_SECRET")
     val mapper = ObjectMapper().registerModule(KotlinModule())
+    val API_HOST = System.getenv("API_HOST") ?: "localhost:8080"
 
     fun play(track: String, token: String, deviceId: String?, offset: Int, retry: Boolean = true): String {
         val requestR = mapOf("uris" to arrayOf(track), "offset" to mapOf("position" to offset))
@@ -80,7 +81,7 @@ object Spotify {
                 .clientSecret(Spotify.CLIENT_SECRET)
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
-                .redirectURI("http://localhost:8080/callback")
+                .redirectURI("${Spotify.API_HOST}/callback")
                 .build()
 
         println(filters.joinToString(" ") { f -> f.compile() })
@@ -97,7 +98,7 @@ object Spotify {
                 .clientSecret(Spotify.CLIENT_SECRET)
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
-                .redirectURI("http://localhost:8080/callback")
+                .redirectURI("${Spotify.API_HOST}/callback")
                 .build()
 
         return api.searchAlbums(filters.joinToString(" ") { f -> f.compile() })
@@ -113,7 +114,7 @@ object Spotify {
                 .clientSecret(Spotify.CLIENT_SECRET)
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
-                .redirectURI("http://localhost:8080/callback")
+                .redirectURI("${Spotify.API_HOST}/callback")
                 .build()
 
         return api.searchArtists(filters.joinToString(" ") { f -> f.compile() })

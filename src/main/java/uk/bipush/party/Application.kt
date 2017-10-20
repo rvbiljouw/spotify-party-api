@@ -14,6 +14,7 @@ import uk.bipush.party.model.Account
 import uk.bipush.party.model.Party
 import uk.bipush.party.model.PartyStatus
 import uk.bipush.party.task.OfflineDeviceUpdater
+import uk.bipush.party.task.TokenRefresher
 import uk.bipush.party.util.Spotify
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -74,40 +75,8 @@ fun main(args: Array<String>) {
     endpoints.forEach { it.init() }
 
     val executorService = Executors.newScheduledThreadPool(2)
+
     executorService.scheduleAtFixedRate(partyHandler, 0, 2, TimeUnit.SECONDS)
     executorService.scheduleAtFixedRate(OfflineDeviceUpdater(), 0, 2, TimeUnit.SECONDS)
-
-    executorService.scheduleAtFixedRate(Runnable {
-        val api = Api.builder()
-                .clientId(Spotify.CLIENT_ID)
-                .clientSecret(Spotify.CLIENT_SECRET)
-                .redirectURI("http://localhost:8080/callback")
-                .build()
-
-        val tokens = Account.finder.query()
-                .setFirstRow(0)
-                .setMaxRows(25)
-                .findPagedList()
-        tokens.loadCount()
-
-        val count = tokens.totalCount
-        var offset = 0
-        while (offset < count) {
-            val results = Account.finder.query()
-                    .setFirstRow(offset)
-                    .setMaxRows(25)
-                    .findPagedList()
-            results.list.forEach({ acc ->
-                api.setAccessToken(acc.accessToken)
-                api.setRefreshToken(acc.refreshToken)
-                val newToken = api.refreshAccessToken()
-                        .refreshToken(acc.refreshToken)
-                        .build().get()
-                acc.accessToken = newToken.accessToken
-                acc.update()
-                println("Updated ${acc.displayName}")
-            })
-            offset += results.list.size
-        }
-    }, 0, 5L, TimeUnit.MINUTES)
+    executorService.scheduleAtFixedRate(TokenRefresher(), 0, 5L, TimeUnit.MINUTES)
 }

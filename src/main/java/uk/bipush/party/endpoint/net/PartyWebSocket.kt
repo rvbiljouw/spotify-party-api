@@ -82,13 +82,21 @@ class PartyWebSocket {
         } else {
             if (account == null) {
                 user.remote.sendString("FORBIDDEN")
-            }
-
-            when (wsRequest.opcode) {
+            } else {
+                when (wsRequest.opcode) {
+                    "chat" -> handleChat(user, wsRequest.body, account)
 //                "join_party" -> handleJoinParty(user, wsRequest.body, account)
 //                "create_party" -> handleCreateParty(user, wsRequest.body, account)
+                }
             }
         }
+    }
+
+    private fun handleChat(user: Session, body: String, account: Account) {
+        val request: ChatRequest = mapper.readValue(body)
+
+        val party = Party.finder.byId(request.partyId)
+
     }
 
     private fun handleAuth(user: Session, body: String) {
@@ -108,7 +116,7 @@ class PartyWebSocket {
 
 }
 
-data class PartySession(val session: Session, val party: Party)
+data class ChatRequest(val message: String, val partyId: Long)
 
 data class WSMessage(val opcode: String, val body: String)
 

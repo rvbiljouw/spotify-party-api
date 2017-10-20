@@ -25,7 +25,7 @@ class LoginEndpoint : Endpoint {
         val api = Api.builder()
                 .clientId(Spotify.CLIENT_ID)
                 .clientSecret(Spotify.CLIENT_SECRET)
-                .redirectURI("http://localhost:8080/callback")
+                .redirectURI("${Spotify.API_HOST}/callback")
                 .build()
     }
 
@@ -47,7 +47,7 @@ class LoginEndpoint : Endpoint {
                 val api = Api.builder()
                         .clientId(Spotify.CLIENT_ID)
                         .clientSecret(Spotify.CLIENT_SECRET)
-                        .redirectURI("http://localhost:8080/callback")
+                        .redirectURI("${Spotify.API_HOST}/callback")
                         .build()
                 credentials = api.authorizationCodeGrant(code).build().get()
                 authCache.put(code, credentials)
