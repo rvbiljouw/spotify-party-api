@@ -20,28 +20,35 @@ object Spotify {
     val API_HOST = System.getenv("API_HOST") ?: "http://localhost:8080"
     val FRONTEND_HOST = System.getenv("FRONTEND_HOST") ?: "http://localhost:4200"
 
-    fun play(track: String, token: String, deviceId: String?, offset: Int, retry: Boolean = true): String {
+    fun play(track: String, playTargets: List<PlayTarget>, offset: Int, retry: Boolean = true) {
         val requestR = mapOf("uris" to arrayOf(track), "offset" to mapOf("position" to offset))
         val reqBody = RequestBody.create(MediaType.parse("application/json"), mapper.writeValueAsString(requestR))
 
-        val url = "https://api.spotify.com/v1/me/player/play" + if (deviceId != null) "device_id=$deviceId" else ""
-        val request = Request.Builder()
-                .url(url)
-                .addHeader("Authorization", "Bearer $token")
-                .put(reqBody)
-                .build()
-        val client = OkHttpClient()
-        val response = client.newCall(request).execute()
-        if (response.isSuccessful) {
-            if (response.code() == 202 && retry) {
-                return play(track, token, deviceId, offset, false)
+        playTargets.map {
+            val deviceId = it.device
+            val token = it.token
+            Thread {
+                val url = "https://api.spotify.com/v1/me/player/play" + if (deviceId != null) "device_id=$deviceId" else ""
+                val request = Request.Builder()
+                        .url(url)
+                        .addHeader("Authorization", "Bearer $token")
+                        .put(reqBody)
+                        .build()
+                val client = OkHttpClient()
+                val response = client.newCall(request).execute()
+                if (response.isSuccessful) {
+                    if (response.code() == 202 && retry) {
+//                        return play(track, token, deviceId, offset, false)
+                        println("Retry required for ${it}")
+
+                    }
+                    response.close()
+                } else {
+                    response.close()
+                    println("Request failed for ${it}")
+                }
             }
-            response.close()
-            return response.message()
-        } else {
-            response.close()
-            return "error"
-        }
+        }.forEach { it.start() }
     }
 
     fun getInfo(token: String) {
@@ -119,6 +126,8 @@ object Spotify {
                 .get()
     }
 }
+
+data class PlayTarget(val token: String, val device: String?)
 
 data class SpotifyDevice(val id: String,
                          @field:JsonProperty("is_active") val isActive: Boolean,

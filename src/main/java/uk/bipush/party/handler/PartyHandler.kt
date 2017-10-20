@@ -7,6 +7,7 @@ import uk.bipush.party.model.Party
 import uk.bipush.party.model.PartyQueueEntry
 import uk.bipush.party.model.RequestStatus
 import uk.bipush.party.queue.PartyQueue
+import uk.bipush.party.util.PlayTarget
 import uk.bipush.party.util.Spotify
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
@@ -43,9 +44,8 @@ class PartyHandler : Runnable {
                     if (queue.nowPlaying == null) {
                         val next = queue.entries.iterator().next()
 
-                        party.members.filter { account -> account.activeParty == party }.forEach { account ->
-                            playSong(account, next, 0)
-                        }
+                        val accounts = party.members.filter { account -> account.activeParty == party }
+                        playSong(accounts, next, 0)
 
                         val now = System.currentTimeMillis()
 
@@ -78,17 +78,15 @@ class PartyHandler : Runnable {
         }
     }
 
-    private fun playSong(account: Account, entry: PartyQueueEntry, offset: Int) {
+    private fun playSong(accounts: List<Account>, entry: PartyQueueEntry, offset: Int) {
         try {
-            val token = account.accessToken
+            val playTargets = accounts.map { PlayTarget(it.accessToken!!, it.selectedDevice) }
             val uri = entry.uri
 
-            if (token != null) {
-                if (uri != null) {
-                    Spotify.play(uri, token, account.selectedDevice, offset)
-                } else {
-                    logger.warn("Queue entry [${entry.id}] has null uri")
-                }
+            if (uri != null) {
+                Spotify.play(uri, playTargets, offset)
+            } else {
+                logger.warn("Queue entry [${entry.id}] has null uri")
             }
         } catch (t: Throwable) {
             logger.error("Error playing next song", t)
@@ -100,7 +98,7 @@ class PartyHandler : Runnable {
 
         val nowPlaying = queue.nowPlaying
         if (nowPlaying != null) {
-            playSong(account, nowPlaying, ((System.currentTimeMillis() - nowPlaying.playedAt) / 1000).toInt())
+            playSong(listOf(account), nowPlaying, ((System.currentTimeMillis() - nowPlaying.playedAt) / 1000).toInt())
         }
     }
 
