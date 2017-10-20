@@ -11,7 +11,6 @@ create table account (
   created                       timestamp not null,
   updated                       timestamp not null,
   constraint ck_account_account_type check ( account_type in ('REGULAR','STAFF')),
-  constraint uq_account_active_party_id unique (active_party_id),
   constraint pk_account primary key (id)
 );
 
