@@ -1,4 +1,5 @@
 alter table account drop constraint if exists fk_account_active_party_id;
+drop index if exists ix_account_active_party_id;
 
 alter table party drop constraint if exists fk_party_owner_id;
 drop index if exists ix_party_owner_id;

@@ -18,6 +18,7 @@ object Spotify {
     val CLIENT_SECRET = System.getenv("SPOTIFY_CLIENT_SECRET")
     val mapper = ObjectMapper().registerModule(KotlinModule())
     val API_HOST = System.getenv("API_HOST") ?: "localhost:8080"
+    val FRONTEND_HOST = System.getenv("FRONTEND_HOST") ?: "localhost:4200"
 
     fun play(track: String, token: String, deviceId: String?, offset: Int, retry: Boolean = true): String {
         val requestR = mapOf("uris" to arrayOf(track), "offset" to mapOf("position" to offset))
@@ -36,11 +37,6 @@ object Spotify {
                 return play(track, token, deviceId, offset, false)
             }
             response.close()
-            try {
-                throw Exception("Asdfasdf")
-            } catch(t: Exception) {
-                t.printStackTrace()
-            }
             return response.message()
         } else {
             response.close()

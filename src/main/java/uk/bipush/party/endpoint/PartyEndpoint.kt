@@ -193,6 +193,11 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
                 account.activeParty = party
                 account.save()
 
+                PartyWebSocket.sendPartyUpdate(party, party.members)
+
+                partyHandler.onPartyJoin(account, party)
+
+
                 party.response(false, false)
             } else {
                 res.status(404)

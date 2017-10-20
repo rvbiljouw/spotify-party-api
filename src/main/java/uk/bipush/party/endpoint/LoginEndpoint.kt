@@ -80,7 +80,7 @@ class LoginEndpoint : Endpoint {
                     account.save()
 
                     req.session(true).attribute("user_id", account.id)
-                    res.redirect("http://localhost:4200")
+                    res.redirect(Spotify.FRONTEND_HOST)
                 }
             }
         } catch (t: Throwable) {

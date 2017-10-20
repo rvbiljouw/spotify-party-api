@@ -8,7 +8,6 @@ create table account (
   active_party_id               bigint,
   created                       timestamp not null,
   updated                       timestamp not null,
-  constraint uq_account_active_party_id unique (active_party_id),
   constraint pk_account primary key (id)
 );
 
@@ -63,6 +62,7 @@ create table party_queue_vote (
 create index ix_account_access_token on account (access_token);
 create index ix_account_selected_device on account (selected_device);
 alter table account add constraint fk_account_active_party_id foreign key (active_party_id) references party (id) on delete restrict on update restrict;
+create index ix_account_active_party_id on account (active_party_id);
 
 alter table party add constraint fk_party_owner_id foreign key (owner_id) references account (id) on delete restrict on update restrict;
 create index ix_party_owner_id on party (owner_id);

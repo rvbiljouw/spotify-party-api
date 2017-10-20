@@ -24,7 +24,7 @@ class Account : Model() {
     var refreshToken: String? = null
     @Index
     var selectedDevice: String? = null
-    @OneToOne
+    @ManyToOne
     var activeParty: Party? = null
     @CreatedTimestamp
     var created: Timestamp? = null
