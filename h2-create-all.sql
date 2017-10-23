@@ -22,9 +22,11 @@ create table party (
   background_url                varchar(255),
   password                      varchar(255),
   status                        varchar(7),
+  access                        varchar(8),
   created                       timestamp not null,
   updated                       timestamp not null,
   constraint ck_party_status check ( status in ('ONLINE','OFFLINE')),
+  constraint ck_party_access check ( access in ('PUBLIC','PRIVATE','PASSWORD')),
   constraint pk_party primary key (id)
 );
 

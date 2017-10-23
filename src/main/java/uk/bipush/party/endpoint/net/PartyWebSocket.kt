@@ -17,6 +17,7 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect
 import org.eclipse.jetty.websocket.api.annotations.WebSocket
+import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import uk.bipush.party.model.Account
 import uk.bipush.party.model.AccountType
@@ -91,8 +92,8 @@ class PartyWebSocket {
                 if (session != null && session.isOpen) {
                     session.remote.sendString(message)
                 }
-            } catch(wse: WebSocketException) {
-            } catch(t: Throwable) {
+            } catch (wse: WebSocketException) {
+            } catch (t: Throwable) {
                 logger.error("Error sending ws message", t)
             }
         }
@@ -169,7 +170,8 @@ class PartyWebSocket {
                     request.message,
                     party.owner == account,
                     account.accountType == AccountType.STAFF,
-                    false
+                    false,
+                    DateTime.now()
             )
 
             messages.add(message)
@@ -200,7 +202,7 @@ class PartyWebSocket {
 
 }
 
-data class ChatMessage(val sender: String, val message: String, val isOwner: Boolean, val isStaff: Boolean, val isServer: Boolean)
+data class ChatMessage(val sender: String, val message: String, val isOwner: Boolean, val isStaff: Boolean, val isServer: Boolean, val timestamp: DateTime)
 
 data class ChatRequest(val message: String, val partyId: Long)
 

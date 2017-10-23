@@ -25,9 +25,9 @@ spec:
               memory: 960M
           env:
             - name: API_HOST
-              value: http://partify.quirlion.com
+              value: http://api.awsum.io
             - name: FRONTEND_HOST
-              value: http://35.195.110.5
+              value: http://awsum.io
             - name: SPOTIFY_CLIENT_ID
               value: 10a4963dcc5c472b8d5c52004d08cb43
             - name: SPOTIFY_CLIENT_SECRET

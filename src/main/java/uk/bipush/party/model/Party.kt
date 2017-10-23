@@ -11,8 +11,12 @@ enum class PartyStatus {
     ONLINE, OFFLINE
 }
 
+enum class PartyAccess {
+    PUBLIC, PRIVATE, PASSWORD
+}
+
 @Entity
-class Party: Model() {
+class Party : Model() {
 
     companion object {
         val finder: Finder<Long, Party> = Finder(Party::class.java)
@@ -33,6 +37,8 @@ class Party: Model() {
     var password: String? = ""
     @Enumerated(value = EnumType.STRING)
     var status: PartyStatus? = PartyStatus.ONLINE
+    @Enumerated(value = EnumType.STRING)
+    var access: PartyAccess? = PartyAccess.PRIVATE
     @CreatedTimestamp
     var created: DateTime? = null
     @UpdatedTimestamp
@@ -62,6 +68,7 @@ class PartyResponse {
     var name: String? = ""
     var description: String? = ""
     var backgroundUrl: String? = ""
+    var access: PartyAccess? = null
     var status: PartyStatus? = null
     var created: DateTime? = null
     var updated: DateTime? = null
@@ -79,6 +86,7 @@ fun Party.response(withTokens: Boolean = false, withChildren: Boolean = true): P
 
         this.name = self.name
         this.description = self.description
+        this.access = self.access
         this.status = self.status
         this.backgroundUrl = self.backgroundUrl
         this.created = self.created

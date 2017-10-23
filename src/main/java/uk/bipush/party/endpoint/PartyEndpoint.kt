@@ -11,6 +11,7 @@ import com.google.cloud.storage.Storage
 import com.google.cloud.storage.StorageOptions
 import com.google.common.hash.Hashing
 import com.google.common.io.Files
+import io.ebean.Expr
 import spark.Route
 import spark.Spark
 import uk.bipush.party.endpoint.net.PartyWebSocket
@@ -42,7 +43,8 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
         Spark.post("/api/v1/party", createParty, JacksonResponseTransformer())
         Spark.put("/api/v1/party/activate", changeActiveParty, JacksonResponseTransformer())
         Spark.post("/api/v1/party/:id/background", uploadPartyBackground, JacksonResponseTransformer())
-        Spark.post("/api/v1/party/:id/settings", updatePartySettings, JacksonResponseTransformer())
+        Spark.put("/api/v1/party/:id", updatePartySettings, JacksonResponseTransformer())
+        Spark.delete("api/v1/party/:id/members/:memberId", kickPartyMember, JacksonResponseTransformer())
     }
 
     val getAll = Route { req, res ->
@@ -52,7 +54,7 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
         val sort = req.queryParamOrDefault("sort", "").toString()
         val order = req.queryParamOrDefault("order", "").toString()
 
-        var query = DBUtils.applyFilters(Party.finder.query(), filters)
+        var query = DBUtils.applyFilters(Party.finder.query().where(Expr.eq("access", PartyAccess.PUBLIC)), filters)
                 .setFirstRow(offset ?: 0)
                 .setMaxRows(limit ?: 25)
 
@@ -224,16 +226,34 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
     }
 
     val updatePartySettings = Route { req, res ->
+        val userId: Long? = req.session().attribute("user_id") ?: 0
+        val account = Account.finder.byId(userId)
 
+        val partyId: Long? = req.params(":id").toLong()
+        val party = Party.finder.byId(partyId)
+        if (account != null && party != null && party.owner?.id == userId) {
+            val req: UpdatePartyRequest = mapper.readValue(req.body())
+            party.access = req.access ?: party.access
+            party.name = req.name ?: party.name
+            party.description = req.description ?: party.description
+            party.update()
+
+            party.response(false, true)
+        } else {
+            res.status(403)
+        }
     }
 
     val uploadPartyBackground = Route { req, res ->
         val multipartConfigElement = MultipartConfigElement("/tmp/")
         req.raw().setAttribute("org.eclipse.jetty.multipartConfig", multipartConfigElement)
 
-        val partyId = req.params(":id").toLong()
+        val userId: Long? = req.session().attribute("user_id") ?: 0
+        val account = Account.finder.byId(userId)
+
+        val partyId: Long? = req.params(":id").toLong()
         val party = Party.finder.byId(partyId)
-        if (party != null) {
+        if (account != null && party != null && party.owner?.id == userId) {
             val filePart = req.raw().getPart("file")
             var fileName = filePart.submittedFileName
             val extension = fileName.split(".").last()
@@ -267,6 +287,44 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
             } else {
                 res.status(500)
             }
+        } else {
+            res.status(403)
+        }
+    }
+
+    val kickPartyMember = Route { req, res ->
+        val userId: Long? = req.session().attribute("user_id") ?: 0
+        val account = Account.finder.byId(userId)
+
+        val partyId: Long? = req.params(":id").toLong()
+        val party = Party.finder.byId(partyId)
+        if (account != null && party != null && party.owner?.id == userId) {
+            val memberId: Long = req.params(":memberId").toLong()
+            val member: Account? = Account.finder.byId(memberId)
+            println(party.members)
+
+
+            DBUtils.transactional({
+                party.activeMembers.remove(member)
+                party.members.remove(member)
+                party.update()
+
+
+                if (member?.activeParty == party) {
+                    member.activeParty = null
+
+                    member.update()
+                }
+            })
+
+            PartyWebSocket.sendPartyUpdate(party, party.members)
+
+            party.response(false)
+            party.members
+        } else {
+            println(partyId)
+            println(userId)
+            res.status(404)
         }
     }
 
@@ -280,3 +338,5 @@ data class CreatePartyRequest(val name: String, val description: String)
 data class JoinPartyRequest(val id: Long)
 
 data class MyPartiesResponse(val activeParty: PartyResponse?, val parties: Set<PartyResponse>?)
+
+data class UpdatePartyRequest(val name: String?, val description: String?, val access: PartyAccess?)
