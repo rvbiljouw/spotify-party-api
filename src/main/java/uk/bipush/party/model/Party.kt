@@ -29,6 +29,8 @@ class Party: Model() {
     var activeMembers: MutableSet<Account> = mutableSetOf()
     var name: String? = ""
     var description: String? = ""
+    var backgroundUrl: String? = ""
+    var password: String? = ""
     @Enumerated(value = EnumType.STRING)
     var status: PartyStatus? = PartyStatus.ONLINE
     @CreatedTimestamp
@@ -59,6 +61,7 @@ class PartyResponse {
     var members: MutableSet<AccountResponse> = mutableSetOf()
     var name: String? = ""
     var description: String? = ""
+    var backgroundUrl: String? = ""
     var status: PartyStatus? = null
     var created: DateTime? = null
     var updated: DateTime? = null
@@ -77,6 +80,7 @@ fun Party.response(withTokens: Boolean = false, withChildren: Boolean = true): P
         this.name = self.name
         this.description = self.description
         this.status = self.status
+        this.backgroundUrl = self.backgroundUrl
         this.created = self.created
         this.updated = self.updated
     }

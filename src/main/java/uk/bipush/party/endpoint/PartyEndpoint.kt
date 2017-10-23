@@ -5,6 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.joda.JodaModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.google.cloud.storage.Acl
+import com.google.cloud.storage.BlobInfo
+import com.google.cloud.storage.Storage
+import com.google.cloud.storage.StorageOptions
+import com.google.common.hash.Hashing
+import com.google.common.io.Files
 import spark.Route
 import spark.Spark
 import uk.bipush.party.endpoint.net.PartyWebSocket
@@ -13,12 +19,18 @@ import uk.bipush.party.model.*
 import uk.bipush.party.util.DBUtils
 import uk.bipush.party.util.Filter
 import uk.bipush.party.util.JacksonResponseTransformer
+import java.awt.image.BufferedImage
+import java.io.File
+import javax.imageio.ImageIO
+import javax.servlet.MultipartConfigElement
 
 class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
     private val mapper = ObjectMapper()
             .registerModule(KotlinModule())
             .registerModule(JodaModule())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    private val storage: Storage = StorageOptions.getDefaultInstance().service
+
 
     override fun init() {
         Spark.get("/api/v1/parties", getAll, JacksonResponseTransformer())
@@ -29,6 +41,8 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
         Spark.delete("/api/v1/party", leaveParty, JacksonResponseTransformer())
         Spark.post("/api/v1/party", createParty, JacksonResponseTransformer())
         Spark.put("/api/v1/party/activate", changeActiveParty, JacksonResponseTransformer())
+        Spark.post("/api/v1/party/:id/background", uploadPartyBackground, JacksonResponseTransformer())
+        Spark.post("/api/v1/party/:id/settings", updatePartySettings, JacksonResponseTransformer())
     }
 
     val getAll = Route { req, res ->
@@ -207,6 +221,57 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
         } else {
             res.status(403)
         }
+    }
+
+    val updatePartySettings = Route { req, res ->
+
+    }
+
+    val uploadPartyBackground = Route { req, res ->
+        val multipartConfigElement = MultipartConfigElement("/tmp/")
+        req.raw().setAttribute("org.eclipse.jetty.multipartConfig", multipartConfigElement)
+
+        val partyId = req.params(":id").toLong()
+        val party = Party.finder.byId(partyId)
+        if (party != null) {
+            val filePart = req.raw().getPart("file")
+            var fileName = filePart.submittedFileName
+            val extension = fileName.split(".").last()
+
+            val file = File("/tmp/${System.currentTimeMillis()}.tmp")
+            filePart.write(file.name)
+            if (file.exists()) {
+                if (arrayOf("png", "jpg", "jpeg").contains(extension)) {
+                    // If it's an image we need to scale it
+                    val image = ImageIO.read(file)
+                    val buffer = BufferedImage(1920, 1080, BufferedImage.SCALE_SMOOTH)
+                    buffer.graphics.drawImage(image, 0, 0, 1920, 1080, null)
+                    ImageIO.write(buffer, "jpg", file)
+                    fileName = "${filePart.submittedFileName}.jpg"
+                }
+
+                val hash = Files.hash(file, Hashing.adler32()).toString()
+                fileName = getBlobFileName(hash, fileName)
+
+                val blob = storage.create(BlobInfo
+                        .newBuilder("partify-storage", fileName)
+                        .setAcl(listOf(Acl.of(Acl.User.ofAllUsers(), Acl.Role.READER)))
+                        .setMetadata(mapOf("adlerHash" to hash)).build(),
+                        file.inputStream())
+
+                party.backgroundUrl = blob.mediaLink
+                party.save()
+
+
+                party.response()
+            } else {
+                res.status(500)
+            }
+        }
+    }
+
+    private fun getBlobFileName(hash: String, fileName: String): String {
+        return "$hash-${System.currentTimeMillis()}-$fileName"
     }
 }
 

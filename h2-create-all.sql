@@ -19,6 +19,8 @@ create table party (
   owner_id                      bigint,
   name                          varchar(255),
   description                   varchar(255),
+  background_url                varchar(255),
+  password                      varchar(255),
   status                        varchar(7),
   created                       timestamp not null,
   updated                       timestamp not null,
