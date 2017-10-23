@@ -78,13 +78,13 @@ class PartyHandler : Runnable {
         }
     }
 
-    private fun playSong(accounts: List<Account>, entry: PartyQueueEntry, offset: Int) {
+    private fun playSong(accounts: List<Account>, entry: PartyQueueEntry, position: Long) {
         try {
             val playTargets = accounts.map { PlayTarget(it.accessToken!!, it.selectedDevice) }
             val uri = entry.uri
 
             if (uri != null) {
-                Spotify.play(uri, playTargets, offset)
+                Spotify.play(uri, playTargets, position)
             } else {
                 logger.warn("Queue entry [${entry.id}] has null uri")
             }
@@ -98,7 +98,7 @@ class PartyHandler : Runnable {
 
         val nowPlaying = queue.nowPlaying
         if (nowPlaying != null) {
-            playSong(listOf(account), nowPlaying, ((System.currentTimeMillis() - nowPlaying.playedAt) / 1000).toInt())
+            playSong(listOf(account), nowPlaying, ((System.currentTimeMillis() - nowPlaying.playedAt)) + 3000)
         }
     }
 

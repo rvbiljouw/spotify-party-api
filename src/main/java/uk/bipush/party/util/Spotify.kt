@@ -20,8 +20,8 @@ object Spotify {
     val API_HOST = System.getenv("API_HOST") ?: "http://localhost:8080"
     val FRONTEND_HOST = System.getenv("FRONTEND_HOST") ?: "http://localhost:4200"
 
-    fun play(track: String, playTargets: List<PlayTarget>, offset: Int, retry: Boolean = true) {
-        val requestR = mapOf("uris" to arrayOf(track), "offset" to mapOf("position" to offset))
+    fun play(track: String, playTargets: List<PlayTarget>, position: Long, retry: Boolean = true) {
+        val requestR = mapOf("uris" to arrayOf(track))
         val reqBody = RequestBody.create(MediaType.parse("application/json"), mapper.writeValueAsString(requestR))
 
         playTargets.map {
@@ -42,7 +42,12 @@ object Spotify {
                         println("Retry required for ${it}")
 
                     }
+
                     response.close()
+
+                    if (position > 0) {
+                        seek(position, it, true)
+                    }
                 } else {
                     response.close()
                     println("Request failed for ${it}")
@@ -50,6 +55,33 @@ object Spotify {
             }
         }.forEach { it.start() }
     }
+
+    fun seek(position: Long, target: PlayTarget, retry: Boolean = true) {
+        val requestR = mapOf("position_ms" to position, "device_id" to target.device)
+        val reqBody = RequestBody.create(MediaType.parse("application/json"), mapper.writeValueAsString(requestR))
+
+        Thread {
+            val url = "https://api.spotify.com/v1/me/player/seek"
+            val request = Request.Builder()
+                    .url(url)
+                    .addHeader("Authorization", "Bearer ${target.token}")
+                    .put(reqBody)
+                    .build()
+            val client = OkHttpClient()
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                if (response.code() == 202 && retry) {
+//                        return play(track, token, deviceId, offset, false)
+                    println("Retry required")
+                }
+                response.close()
+            } else {
+                response.close()
+                println("Request failed")
+            }
+        }.start()
+    }
+
 
     fun getInfo(token: String) {
         val request = Request.Builder()
