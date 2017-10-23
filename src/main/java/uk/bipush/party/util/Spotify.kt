@@ -44,12 +44,13 @@ object Spotify {
                     }
 
                     response.close()
-
+                    
                     if (position > 0) {
                         seek(position, it, true)
                     }
                 } else {
                     response.close()
+                    println(response)
                     println("Request failed for ${it}")
                 }
             }
@@ -61,7 +62,7 @@ object Spotify {
         val reqBody = RequestBody.create(MediaType.parse("application/json"), mapper.writeValueAsString(requestR))
 
         Thread {
-            val url = "https://api.spotify.com/v1/me/player/seek"
+            val url = "https://api.spotify.com/v1/me/player/seek?position_ms=$position" + if (target.device != null) "&device_id=${target.device}" else ""
             val request = Request.Builder()
                     .url(url)
                     .addHeader("Authorization", "Bearer ${target.token}")
@@ -76,6 +77,7 @@ object Spotify {
                 }
                 response.close()
             } else {
+                println(response)
                 response.close()
                 println("Request failed")
             }

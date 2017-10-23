@@ -253,6 +253,8 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
 
         val partyId: Long? = req.params(":id").toLong()
         val party = Party.finder.byId(partyId)
+        println(userId)
+        println(partyId)
         if (account != null && party != null && party.owner?.id == userId) {
             val filePart = req.raw().getPart("file")
             var fileName = filePart.submittedFileName
