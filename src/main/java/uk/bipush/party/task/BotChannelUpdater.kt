@@ -76,7 +76,7 @@ class BotChannelUpdater(val partyHandler: PartyHandler) : Runnable {
             }
 
             val queue = PartyQueue.forParty(party, 0, 25)
-            if (queue.entries.size < 25) {
+            if (queue.entries.size < 1000) {
                 if (channel.urlFeed != null) {
                     val request = Request.Builder()
                             .url(channel.urlFeed)
@@ -94,13 +94,14 @@ class BotChannelUpdater(val partyHandler: PartyHandler) : Runnable {
                     val random = Random()
                     val masterList: MutableList<ComparableSong> = mutableListOf()
                     channel.keywords.forEach {
-                        val results = Spotify.searchSongsByQueryM(api, it, 0, 25)
+                        val results = Spotify.searchSongsByQueryM(api, it, 0, 10)
                         if (results != null && results.items.isNotEmpty()) {
                             val songs = range(0, results.items.size - 1)
                                     .map { random.nextInt(results.items.size - 1) }
                                     .toList().toHashSet()
                                     .map { ComparableSong(results.items[it]) }
                                     .sortedByDescending { it.track.popularity }
+                                    .filter { track -> queue.entries.count { it.uri == track.track.uri } == 0 }
                                     .take(5)
                                     .toSet()
                             masterList.addAll(songs)
@@ -128,9 +129,11 @@ data class ComparableSong(val track: Track) {
         if (other is ComparableSong) {
             return track.externalIds.externalIds["isrc"] == other.track.externalIds.externalIds["isrc"]
                     || track.name == other.track.name
+                    || track.name.split(" ").first().trim() == other.track.name.split(" ").first().trim()
         }
         return super.equals(other)
     }
+
 }
 
 data class BotChannel(val name: String, val description: String, val keywords: List<String> = listOf(), val urlFeed: String? = null)

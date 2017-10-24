@@ -81,7 +81,7 @@ class QueueEndpoint : Endpoint {
                 var entry = PartyQueueEntry.finder.byId(request.id)
 
                 if (entry != null) {
-                    if (entry.status == PartyQueueEntryStatus.IN_QUEUE) {
+                    if (entry.status != PartyQueueEntryStatus.IN_QUEUE) {
                         res.status(400)
                         mapOf("error" to "Unable to find song in the queue.")
                     } else {
