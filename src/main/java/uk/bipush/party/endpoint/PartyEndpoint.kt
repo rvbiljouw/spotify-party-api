@@ -102,20 +102,24 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
 
             val party = Party.finder.byId(request.id)
             if (party != null) {
-                DBUtils.transactional({
-                    party.members.add(account)
-                    party.activeMembers.add(account)
-                    account.activeParty = party
+                if (account.activeParty != null && account.activeParty == party) {
+                    party.response(false)
+                } else {
+                    DBUtils.transactional({
+                        party.members.add(account)
+                        party.activeMembers.add(account)
+                        account.activeParty = party
 
-                    party.update()
-                    account.update()
-                })
+                        party.update()
+                        account.update()
+                    })
 
-                PartyWebSocket.sendPartyUpdate(party, party.members)
+                    PartyWebSocket.sendPartyUpdate(party, party.members)
 
-                partyHandler.onPartyJoin(account, party)
+                    partyHandler.onPartyJoin(account, party)
 
-                party.response(false)
+                    party.response(false)
+                }
             } else {
                 res.status(404)
                 mapOf("error" to "Party not found.")

@@ -1,6 +1,5 @@
 package uk.bipush.party.endpoint
 
-import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
 import com.wrapper.spotify.Api
 import com.wrapper.spotify.models.AuthorizationCodeCredentials
@@ -8,10 +7,7 @@ import io.ebean.Expr
 import spark.Route
 import spark.Spark
 import uk.bipush.party.model.Account
-import uk.bipush.party.model.AccountLink
-import uk.bipush.party.model.LinkType
 import uk.bipush.party.util.JacksonResponseTransformer
-import uk.bipush.party.util.Slack
 import uk.bipush.party.util.Spotify
 import java.util.*
 import java.util.concurrent.TimeUnit

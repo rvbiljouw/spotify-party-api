@@ -10,7 +10,7 @@ class PartyQueue {
             val entries = PartyQueueEntry.finder.query()
                     .where()
                     .eq("party.id", party.id)
-                    .eq("status", RequestStatus.IN_QUEUE)
+                    .eq("status", PartyQueueEntryStatus.IN_QUEUE)
                     .setFirstRow(offset)
                     .setMaxRows(limit)
                     .order().desc("votes")
@@ -20,7 +20,7 @@ class PartyQueue {
             val nowPlaying = PartyQueueEntry.finder.query()
                     .where()
                     .eq("party.id", party.id)
-                    .eq("status", RequestStatus.PLAYING)
+                    .eq("status", PartyQueueEntryStatus.PLAYING)
                     .findUnique()
 
             return PartyQueue().apply {
@@ -52,6 +52,35 @@ class PartyQueue {
             PartyWebSocket.sendQueueUpdate(PartyQueue.forParty(party), party.members)
 
             return entry
+        }
+
+        fun voteSong(account: Account, party: Party, entry: PartyQueueEntry, upVote: Boolean): PartyQueueEntry? {
+            var vote = PartyQueueVote.finder.query().where()
+                    .eq("account.id", account.id)
+                    .eq("entry.id", entry.id)
+                    .findUnique()
+            if (vote == null) {
+                vote = PartyQueueVote().apply {
+                    this.account = account
+                    this.entry = entry
+                    this.upvote = upVote
+                }
+                vote.save()
+
+                if (upVote) {
+                    entry.upvotes++
+                } else {
+                    entry.downvotes++
+                }
+                entry.votes = entry.upvotes - entry.downvotes
+                entry.save()
+
+                PartyWebSocket.sendQueueUpdate(PartyQueue.forParty(party), party.members)
+
+                return entry
+            } else {
+                return null
+            }
         }
     }
 

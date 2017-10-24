@@ -1,13 +1,10 @@
-package uk.bipush.party.util
+package uk.bipush.party.slack
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.sun.org.apache.xpath.internal.operations.Bool
 import okhttp3.Request
-import okhttp3.RequestBody
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import org.slf4j.LoggerFactory
@@ -20,7 +17,7 @@ object Slack {
     val CLIENT_ID = System.getenv("SLACK_CLIENT_ID")
     val CLIENT_SECRET = System.getenv("SLACK_CLIENT_SECRET")
     val API_HOST = System.getenv("API_HOST") ?: "http://localhost:8080"
-    val REDIRECT_URI = "$API_HOST/slack/callback"
+    val REDIRECT_URI = "${API_HOST}/slack/callback"
 
     val mapper = ObjectMapper().registerModule(KotlinModule())
 

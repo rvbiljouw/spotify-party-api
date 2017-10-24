@@ -8,6 +8,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import spark.Route
 import spark.Spark
 import uk.bipush.party.endpoint.net.PartyWebSocket
+import uk.bipush.party.handler.PartyHandler
 import uk.bipush.party.model.*
 import uk.bipush.party.queue.PartyQueue
 import uk.bipush.party.queue.response
@@ -77,36 +78,20 @@ class QueueEndpoint : Endpoint {
             val party = account.activeParty
             if (party != null) {
                 val request: VoteSongRequest = mapper.readValue(req.body())
-
-                val entry = PartyQueueEntry.finder.byId(request.id)
+                var entry = PartyQueueEntry.finder.byId(request.id)
 
                 if (entry != null) {
-                    var vote = PartyQueueVote.finder.query().where()
-                            .eq("account.id", account.id)
-                            .eq("entry.id", entry.id)
-                            .findUnique()
-                    if (vote == null) {
-                        vote = PartyQueueVote().apply {
-                            this.account = account
-                            this.entry = entry
-                            this.upvote = request.up
-                        }
-                        vote.save()
-
-                        if (request.up) {
-                            entry.upvotes++
-                        } else {
-                            entry.downvotes++
-                        }
-                        entry.votes = entry.upvotes - entry.downvotes
-                        entry.save()
-
-                        PartyWebSocket.sendQueueUpdate(PartyQueue.forParty(party), party.members)
-
-                        entry.response(false)
+                    if (entry.status == PartyQueueEntryStatus.IN_QUEUE) {
+                        res.status(400)
+                        mapOf("error" to "Unable to find song in the queue.")
                     } else {
-                        res.status(409)
-                        mapOf("error" to "Sorry, you've already voted on this queue entry.")
+                        entry = PartyQueue.voteSong(account, party, entry, request.up)
+                        if (entry != null) {
+                            entry.response(false)
+                        } else {
+                            res.status(409)
+                            mapOf("error" to "Sorry, you've already voted on this queue entry.")
+                        }
                     }
                 } else {
                     res.status(404)

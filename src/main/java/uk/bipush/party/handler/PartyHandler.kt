@@ -5,7 +5,7 @@ import uk.bipush.party.endpoint.net.PartyWebSocket
 import uk.bipush.party.model.Account
 import uk.bipush.party.model.Party
 import uk.bipush.party.model.PartyQueueEntry
-import uk.bipush.party.model.RequestStatus
+import uk.bipush.party.model.PartyQueueEntryStatus
 import uk.bipush.party.queue.PartyQueue
 import uk.bipush.party.util.PlayTarget
 import uk.bipush.party.util.Spotify
@@ -50,7 +50,7 @@ class PartyHandler : Runnable {
                         val now = System.currentTimeMillis()
 
                         next.playedAt = now
-                        next.status = RequestStatus.PLAYING
+                        next.status = PartyQueueEntryStatus.PLAYING
 
                         next.update()
 
@@ -61,7 +61,7 @@ class PartyHandler : Runnable {
                         val nowPlaying = queue.nowPlaying!!
 
                         if (nowPlaying.playedAt + nowPlaying.duration <= System.currentTimeMillis()) {
-                            nowPlaying.status = RequestStatus.PLAYED
+                            nowPlaying.status = PartyQueueEntryStatus.PLAYED
                             nowPlaying.update()
 
                             PartyWebSocket.sendQueueUpdate(queue, party.members)
@@ -98,7 +98,7 @@ class PartyHandler : Runnable {
 
         val nowPlaying = queue.nowPlaying
         if (nowPlaying != null) {
-            playSong(listOf(account), nowPlaying, ((System.currentTimeMillis() - nowPlaying.playedAt)) + 3000)
+            playSong(listOf(account), nowPlaying, ((System.currentTimeMillis() - nowPlaying.playedAt)) + 500)
         }
     }
 
