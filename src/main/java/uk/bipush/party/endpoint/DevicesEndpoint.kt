@@ -15,14 +15,11 @@ class DevicesEndpoint : Endpoint {
 
     val getDevices = Route { req, res ->
         val userId: Long? = req.session().attribute("user_id")
-        if (userId != null) {
-            val account = Account.finder.byId(userId)
-            if (account != null) {
-                Spotify.getDevices(account.accessToken!!)
-            } else {
-                res.status(403)
-                mapOf("error" to "You're not logged in.")
-            }
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
+
+        if (account != null) {
+            Spotify.getDevices(account.accessToken!!)
         } else {
             res.status(403)
             mapOf("error" to "You're not logged in.")
@@ -31,17 +28,14 @@ class DevicesEndpoint : Endpoint {
 
     val selectDevice = Route { req, res ->
         val userId: Long? = req.session().attribute("user_id")
-        if (userId != null) {
-            val account = Account.finder.byId(userId)
-            if (account != null) {
-                val deviceId = req.params(":id")
-                account.selectedDevice = deviceId
-                account.save()
-                mapOf("success" to true)
-            } else {
-                res.status(403)
-                mapOf("error" to "You're not logged in.")
-            }
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
+
+        if (account != null) {
+            val deviceId = req.params(":id")
+            account.selectedDevice = deviceId
+            account.save()
+            mapOf("success" to true)
         } else {
             res.status(403)
             mapOf("error" to "You're not logged in.")

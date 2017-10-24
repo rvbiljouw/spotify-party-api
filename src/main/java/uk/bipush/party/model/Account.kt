@@ -6,6 +6,7 @@ import io.ebean.annotation.CreatedTimestamp
 import io.ebean.annotation.Index
 import io.ebean.annotation.UpdatedTimestamp
 import java.sql.Timestamp
+import java.util.*
 import javax.persistence.*
 
 enum class AccountType {
@@ -19,6 +20,22 @@ class Account : Model() {
 
     companion object {
         val finder: Finder<Long, Account> = Finder(Account::class.java)
+
+        fun find(userId: Long?, loginToken: String?): Account? {
+            if (userId != null && userId > 0) {
+                val account = Account.finder.byId(userId)
+
+                account?.loginToken = UUID.randomUUID().toString()
+                account?.update()
+
+                return account
+            } else if (loginToken?.isNotBlank() == true) {
+
+                return Account.finder.query().where().eq("loginToken", loginToken).findUnique()
+            }
+
+            return null
+        }
     }
 
     @Id
@@ -55,7 +72,6 @@ class Account : Model() {
     override fun hashCode(): Int {
         return id.hashCode()
     }
-
 }
 
 class AccountResponse {

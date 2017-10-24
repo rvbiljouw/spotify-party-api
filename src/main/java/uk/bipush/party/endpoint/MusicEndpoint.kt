@@ -32,10 +32,9 @@ class MusicEndpoint : Endpoint {
 
         val userId: Long? = req.session().attribute("user_id")
         val loginToken: String? = req.queryParams("loginToken")
-        if (userId != null || loginToken != null) {
-            val account = if (userId != null) Account.finder.byId(userId)
-                else Account.finder.query().where().eq("loginToken", loginToken).findUnique()
-            if (account != null) {
+        val account = Account.find(userId, loginToken)
+
+        if (account != null) {
                 val songs = Spotify.searchSongs(account.accessToken!!, account.refreshToken!!, filters, offset, limit)
 
                 if (songs != null) {
@@ -51,10 +50,6 @@ class MusicEndpoint : Endpoint {
                 res.status(403)
                 mapOf("error" to "You're not logged in.")
             }
-        } else {
-            res.status(403)
-            mapOf("error" to "You're not logged in.")
-        }
     }
 
     val searchAlbums = Route { req, res ->

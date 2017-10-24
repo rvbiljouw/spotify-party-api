@@ -103,6 +103,7 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
 
     val myParties = Route { req, res ->
         val userId: Long? = req.session().attribute("user_id") ?: 0
+        val loginToken: String = req.queryParams("loginToken")
         val account = Account.finder.byId(userId)
         if (account != null) {
             val parties = Party.finder.query().where().eq("members.id", account.id).findList()

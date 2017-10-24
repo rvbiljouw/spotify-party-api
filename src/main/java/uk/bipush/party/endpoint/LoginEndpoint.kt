@@ -29,8 +29,9 @@ class LoginEndpoint : Endpoint {
     }
 
     private val login = Route { req, res ->
+        val redirectUrl = req.queryParams("redirectUrl")
         val scopes = listOf<String>("user-modify-playback-state", "user-read-playback-state")
-        val authorizeURL = api.createAuthorizeURL(scopes, "secret")
+        val authorizeURL = api.createAuthorizeURL(scopes, redirectUrl)
 
         res.redirect(authorizeURL)
     }
@@ -78,10 +79,19 @@ class LoginEndpoint : Endpoint {
                         account.refreshToken = credentials.refreshToken
                     }
 
+                    if (account.loginToken == null) {
+                        account.loginToken = UUID.randomUUID().toString();
+                    }
+
                     account.save()
 
                     req.session(true).attribute("user_id", account.id)
-                    res.redirect(Spotify.FRONTEND_HOST)
+
+                    if (state?.isNotBlank() == true) {
+                        res.redirect("$state?loginToken=${account.loginToken}")
+                    } else {
+                        res.redirect(Spotify.FRONTEND_HOST)
+                    }
                 }
             }
         } catch (t: Throwable) {
