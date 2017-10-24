@@ -8,8 +8,8 @@ create table account (
   selected_device               varchar(255),
   active_party_id               bigint,
   account_type                  varchar(7),
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint ck_account_account_type check ( account_type in ('REGULAR','STAFF')),
   constraint pk_account primary key (id)
 );
@@ -20,8 +20,8 @@ create table account_link (
   token                         varchar(255),
   account_id                    bigint,
   link_type                     varchar(5),
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint ck_account_link_link_type check ( link_type in ('SLACK')),
   constraint uq_account_link_external_id unique (external_id),
   constraint uq_account_link_token unique (token),
@@ -33,14 +33,10 @@ create table party (
   owner_id                      bigint,
   name                          varchar(255),
   description                   varchar(255),
-  background_url                varchar(255),
-  password                      varchar(255),
   status                        varchar(7),
-  access                        varchar(8),
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint ck_party_status check ( status in ('ONLINE','OFFLINE')),
-  constraint ck_party_access check ( access in ('PUBLIC','PRIVATE','PASSWORD')),
   constraint pk_party primary key (id)
 );
 
@@ -70,8 +66,8 @@ create table party_queue_entry (
   upvotes                       integer not null,
   downvotes                     integer not null,
   status                        varchar(9),
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint ck_party_queue_entry_status check ( status in ('PLAYED','PLAYING','IN_QUEUE','CANCELLED')),
   constraint pk_party_queue_entry primary key (id)
 );
@@ -80,9 +76,9 @@ create table party_queue_vote (
   id                            bigint auto_increment not null,
   account_id                    bigint,
   entry_id                      bigint,
-  upvote                        boolean,
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  upvote                        tinyint(1) default 0,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint pk_party_queue_vote primary key (id)
 );
 

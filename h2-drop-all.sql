@@ -1,6 +1,9 @@
 alter table account drop constraint if exists fk_account_active_party_id;
 drop index if exists ix_account_active_party_id;
 
+alter table account_link drop constraint if exists fk_account_link_account_id;
+drop index if exists ix_account_link_account_id;
+
 alter table party drop constraint if exists fk_party_owner_id;
 drop index if exists ix_party_owner_id;
 
@@ -29,6 +32,8 @@ alter table party_queue_vote drop constraint if exists fk_party_queue_vote_entry
 drop index if exists ix_party_queue_vote_entry_id;
 
 drop table if exists account;
+
+drop table if exists account_link;
 
 drop table if exists party;
 

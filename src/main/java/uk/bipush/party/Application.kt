@@ -47,7 +47,7 @@ fun main(args: Array<String>) {
             .findIds<Long>().forEach { partyHandler.addParty(it) }
 
     val endpoints = arrayOf(LoginEndpoint(), AccountEndpoint(), DevicesEndpoint(),
-            MusicEndpoint(), PartyEndpoint(partyHandler), QueueEndpoint())
+            MusicEndpoint(), PartyEndpoint(partyHandler), QueueEndpoint(), SlackEndpoint())
     Spark.exception(Exception::class.java, { t, request, response ->
         t.printStackTrace()
 

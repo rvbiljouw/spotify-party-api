@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import spark.ResponseTransformer
+import java.net.URLDecoder
 
 /**
  * @author rvbiljouw

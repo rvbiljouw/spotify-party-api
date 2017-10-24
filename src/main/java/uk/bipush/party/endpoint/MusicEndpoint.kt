@@ -31,8 +31,10 @@ class MusicEndpoint : Endpoint {
         val offset = req.queryParams("offset")?.toInt() ?: 0
 
         val userId: Long? = req.session().attribute("user_id")
-        if (userId != null) {
-            val account = Account.finder.byId(userId)
+        val loginToken: String? = req.queryParams("loginToken")
+        if (userId != null || loginToken != null) {
+            val account = if (userId != null) Account.finder.byId(userId)
+                else Account.finder.query().where().eq("loginToken", loginToken).findUnique()
             if (account != null) {
                 val songs = Spotify.searchSongs(account.accessToken!!, account.refreshToken!!, filters, offset, limit)
 
@@ -61,8 +63,10 @@ class MusicEndpoint : Endpoint {
         val offset = req.queryParams("offset")?.toInt() ?: 0
 
         val userId: Long? = req.session().attribute("user_id")
-        if (userId != null) {
-            val account = Account.finder.byId(userId)
+        val loginToken: String? = req.queryParams("loginToken")
+        if (userId != null || loginToken != null) {
+            val account = if (userId != null) Account.finder.byId(userId)
+            else Account.finder.query().where().eq("loginToken", loginToken).findUnique()
             if (account != null) {
                 val albums = Spotify.searchAlbums(account.accessToken!!, account.refreshToken!!, filters, offset, limit)
 
@@ -91,8 +95,10 @@ class MusicEndpoint : Endpoint {
         val offset = req.queryParams("offset")?.toInt() ?: 0
 
         val userId: Long? = req.session().attribute("user_id")
-        if (userId != null) {
-            val account = Account.finder.byId(userId)
+        val loginToken: String? = req.queryParams("loginToken")
+        if (userId != null || loginToken != null) {
+            val account = if (userId != null) Account.finder.byId(userId)
+            else Account.finder.query().where().eq("loginToken", loginToken).findUnique()
             if (account != null) {
                 val artists = Spotify.searchArtists(account.accessToken!!, account.refreshToken!!, filters, offset, limit)
 

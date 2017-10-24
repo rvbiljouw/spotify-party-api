@@ -55,19 +55,9 @@ class QueueEndpoint : Endpoint {
             if (party != null) {
                 val request: QueueSongRequest = mapper.readValue(req.body())
 
-                val entry = PartyQueueEntry().apply {
-                    this.party = party
-                    this.member = account
-                    this.artist = request.artist
-                    this.title = request.title
-                    this.duration = request.duration
-                    this.thumbnail = request.thumbnail
-                    this.uri = request.uri
-                }
-
-                entry.save()
-
-                PartyWebSocket.sendQueueUpdate(PartyQueue.forParty(party), party.members)
+                val entry =
+                        PartyQueue.queueSong(account, party, request.title, request.artist,
+                                request.duration, request.thumbnail, request.uri)
 
                 entry.response(false)
             } else {

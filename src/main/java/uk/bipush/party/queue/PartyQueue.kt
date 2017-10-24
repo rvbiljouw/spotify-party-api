@@ -1,9 +1,11 @@
 package uk.bipush.party.queue
 
+import uk.bipush.party.endpoint.net.PartyWebSocket
 import uk.bipush.party.model.*
 
 class PartyQueue {
     companion object {
+
         fun forParty(party: Party, offset: Int = 0, limit: Int = 25): PartyQueue {
             val entries = PartyQueueEntry.finder.query()
                     .where()
@@ -31,6 +33,25 @@ class PartyQueue {
                 this.entries = entries.toSet()
                 this.party = party
             }
+        }
+
+        fun queueSong(account: Account, party: Party, title: String, artist: String, duration: Int, thumbnail: String, uri: String):
+                PartyQueueEntry {
+            val entry = PartyQueueEntry().apply {
+                this.party = party
+                this.member = account
+                this.artist = artist
+                this.title = title
+                this.duration = duration
+                this.thumbnail = thumbnail
+                this.uri = uri
+            }
+
+            entry.save()
+
+            PartyWebSocket.sendQueueUpdate(PartyQueue.forParty(party), party.members)
+
+            return entry
         }
     }
 

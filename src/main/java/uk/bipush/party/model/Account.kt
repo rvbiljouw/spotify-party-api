@@ -22,6 +22,7 @@ class Account : Model() {
     var id: Long = 0
     var spotifyId: String? = null
     var displayName: String? = null
+    @Index
     var loginToken: String? = null
     @Index
     var accessToken: String? = null
