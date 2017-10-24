@@ -33,6 +33,7 @@ class PartyHandler : Runnable {
     }
 
     private fun playNext(partyId: Long) {
+        println("adasdfadf)")
         if (activeParties.contains(partyId) || newParties.contains(partyId)) {
             val party = Party.finder.byId(partyId)
             if (party == null) {
@@ -98,7 +99,7 @@ class PartyHandler : Runnable {
 
         val nowPlaying = queue.nowPlaying
         if (nowPlaying != null) {
-            playSong(listOf(account), nowPlaying, ((System.currentTimeMillis() - nowPlaying.playedAt)) + 500)
+            playSong(listOf(account), nowPlaying, ((System.currentTimeMillis() - nowPlaying.playedAt)) + 200)
         }
     }
 

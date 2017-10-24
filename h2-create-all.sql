@@ -10,7 +10,7 @@ create table account (
   account_type                  varchar(7),
   created                       timestamp not null,
   updated                       timestamp not null,
-  constraint ck_account_account_type check ( account_type in ('REGULAR','STAFF')),
+  constraint ck_account_account_type check ( account_type in ('REGULAR','STAFF','BOT')),
   constraint pk_account primary key (id)
 );
 
@@ -86,6 +86,7 @@ create table party_queue_vote (
   constraint pk_party_queue_vote primary key (id)
 );
 
+create index ix_account_login_token on account (login_token);
 create index ix_account_access_token on account (access_token);
 create index ix_account_selected_device on account (selected_device);
 alter table account add constraint fk_account_active_party_id foreign key (active_party_id) references party (id) on delete restrict on update restrict;

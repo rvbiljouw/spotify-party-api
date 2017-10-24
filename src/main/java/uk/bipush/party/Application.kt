@@ -13,6 +13,7 @@ import uk.bipush.party.handler.PartyHandler
 import uk.bipush.party.model.Account
 import uk.bipush.party.model.Party
 import uk.bipush.party.model.PartyStatus
+import uk.bipush.party.task.BotChannelUpdater
 import uk.bipush.party.task.OfflineDeviceUpdater
 import uk.bipush.party.task.TokenRefresher
 import uk.bipush.party.util.Spotify
@@ -82,4 +83,5 @@ fun main(args: Array<String>) {
     executorService.scheduleAtFixedRate(partyHandler, 0, 2, TimeUnit.SECONDS)
     executorService.scheduleAtFixedRate(OfflineDeviceUpdater(), 0, 2, TimeUnit.SECONDS)
     executorService.scheduleAtFixedRate(TokenRefresher(), 0, 5L, TimeUnit.MINUTES)
+    executorService.scheduleAtFixedRate(BotChannelUpdater(partyHandler), 0, 30L, TimeUnit.SECONDS)
 }

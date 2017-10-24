@@ -45,7 +45,7 @@ object Spotify {
                     }
 
                     response.close()
-                    
+
                     if (position > 0) {
                         seek(position, it, true)
                     }
@@ -122,7 +122,36 @@ object Spotify {
                 .redirectURI("${Spotify.API_HOST}/callback")
                 .build()
 
-        return api.searchTracks(filters.joinToString(" ") { f -> f.compile() })
+        return api.searchTracks(filters.joinToString("+") { f -> f.compile() })
+                .market("GB")
+                .offset(offset)
+                .limit(limit)
+                .build()
+                .get()
+    }
+
+
+    fun searchSongsByQueryM(api: Api, query: String, offset: Int = 0, limit: Int = 25): Page<Track>? {
+        return api.searchTracks(query.replace(" ", "+"))
+                .market("GB")
+                .offset(offset)
+                .limit(limit)
+                .build()
+                .get()
+    }
+
+    fun searchSongsByQuery(accessToken: String, refreshToken: String, query: String, offset: Int = 0, limit: Int = 25): Page<Track>? {
+        val api = Api.builder()
+                .clientId(Spotify.CLIENT_ID)
+                .clientSecret(Spotify.CLIENT_SECRET)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .redirectURI("${Spotify.API_HOST}/callback")
+                .build()
+
+        println(query)
+        return api.searchTracks(query.replace(" ", "+"))
+                .market("GB")
                 .offset(offset)
                 .limit(limit)
                 .build()

@@ -7,7 +7,7 @@ spec:
   template:
     metadata:
       annotations:
-        deployVersion: "1.1.0-8"
+        deployVersion: "1.1.0-9"
         prometheus.io/scrape: 'false'
       labels:
         app: spotify-party-api

@@ -9,8 +9,11 @@ import java.sql.Timestamp
 import javax.persistence.*
 
 enum class AccountType {
-    REGULAR, STAFF;
+    REGULAR, STAFF,
+
+    BOT
 }
+
 @Entity
 class Account : Model() {
 

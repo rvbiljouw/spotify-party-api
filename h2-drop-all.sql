@@ -45,5 +45,6 @@ drop table if exists party_queue_entry;
 
 drop table if exists party_queue_vote;
 
+drop index if exists ix_account_login_token;
 drop index if exists ix_account_access_token;
 drop index if exists ix_account_selected_device;

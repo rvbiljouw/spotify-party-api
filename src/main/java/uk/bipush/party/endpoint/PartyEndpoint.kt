@@ -38,6 +38,7 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
         Spark.post("/api/v1/parties", search, JacksonResponseTransformer())
 
         Spark.get("/api/v1/party", myParties, JacksonResponseTransformer())
+        Spark.get("/api/v1/party/:id", getById, JacksonResponseTransformer())
         Spark.put("/api/v1/party", joinParty, JacksonResponseTransformer())
         Spark.delete("/api/v1/party", leaveParty, JacksonResponseTransformer())
         Spark.post("/api/v1/party", createParty, JacksonResponseTransformer())
@@ -78,6 +79,26 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
         val filters: List<Filter> = mapper.readValue(req.body())
         req.attribute("filters", filters)
         getAll.handle(req, res)
+    }
+
+    val getById = Route { req, res ->
+        val userId: Long? = req.session().attribute("user_id") ?: 0
+        val partyId: Long? = req.params(":id").toLong()
+        val account = Account.finder.byId(userId)
+        if (account != null) {
+            val party = Party.finder.query()
+                    .where()
+                    .eq("id", partyId)
+                    .eq("members.id", account.id)
+                    .findUnique()
+            if (party != null) {
+                party.response()
+            } else {
+                res.status(404)
+            }
+        } else {
+            res.status(403)
+        }
     }
 
     val myParties = Route { req, res ->
