@@ -43,8 +43,10 @@ class SlackEndpoint : Endpoint {
 
     private val slackCallback = Route { req, res ->
         try {
-            val userId: Long = req.session().attribute("user_id") ?: 0
-            val account = Account.finder.byId(userId)
+            val userId: Long = req.session().attribute("user_id")
+            val loginToken: String? = req.queryParams("loginToken")
+            val account = Account.find(userId, loginToken)
+
             if (account != null) {
                 val state = req.queryParams("state")
                 val code = req.queryParams("code")

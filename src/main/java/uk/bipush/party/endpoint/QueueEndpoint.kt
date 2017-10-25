@@ -28,12 +28,13 @@ class QueueEndpoint : Endpoint {
     }
 
     val getQueue = Route { req, res ->
-        val userId: Long? = req.session().attribute("user_id") ?: 0
+        val userId: Long? = req.session().attribute("user_id")
         val partyId: Long? = req.queryParams("party")?.toLong()
         val limit = req.queryParams("limit")?.toInt() ?: 25
         val offset = req.queryParams("offset")?.toInt() ?: 0
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
 
-        val account = Account.finder.byId(userId)
         if (account != null) {
             val party = if (partyId != null) Party.finder.byId(partyId) else account.activeParty
             if (party != null) {
@@ -49,8 +50,10 @@ class QueueEndpoint : Endpoint {
     }
 
     val queueSong = Route { req, res ->
-        val userId: Long? = req.session().attribute("user_id") ?: 0
-        val account = Account.finder.byId(userId)
+        val userId: Long? = req.session().attribute("user_id")
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
+
         if (account != null) {
             val party = account.activeParty
             if (party != null) {
@@ -72,8 +75,10 @@ class QueueEndpoint : Endpoint {
     }
 
     val voteSong = Route { req, res ->
-        val userId: Long? = req.session().attribute("user_id") ?: 0
-        val account = Account.finder.byId(userId)
+        val userId: Long? = req.session().attribute("user_id")
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
+
         if (account != null) {
             val party = account.activeParty
             if (party != null) {

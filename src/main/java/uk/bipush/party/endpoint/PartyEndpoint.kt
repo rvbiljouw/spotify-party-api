@@ -35,12 +35,12 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
 
     override fun init() {
         Spark.get("/api/v1/parties", getAll, JacksonResponseTransformer())
-        Spark.post("/api/v1/parties", search, JacksonResponseTransformer())
+        Spark.post("/api/v1/party", search, JacksonResponseTransformer())
 
         Spark.get("/api/v1/party", myParties, JacksonResponseTransformer())
         Spark.get("/api/v1/party/:id", getById, JacksonResponseTransformer())
-        Spark.put("/api/v1/party", joinParty, JacksonResponseTransformer())
-        Spark.delete("/api/v1/party", leaveParty, JacksonResponseTransformer())
+        Spark.put("/api/v1/party/:id", joinParty, JacksonResponseTransformer())
+        Spark.delete("/api/v1/party/:id", leaveParty, JacksonResponseTransformer())
         Spark.post("/api/v1/party", createParty, JacksonResponseTransformer())
         Spark.put("/api/v1/party/activate", changeActiveParty, JacksonResponseTransformer())
         Spark.post("/api/v1/party/:id/background", uploadPartyBackground, JacksonResponseTransformer())
@@ -82,9 +82,11 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
     }
 
     val getById = Route { req, res ->
-        val userId: Long? = req.session().attribute("user_id") ?: 0
+        val userId: Long? = req.session().attribute("user_id")
         val partyId: Long? = req.params(":id").toLong()
-        val account = Account.finder.byId(userId)
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
+
         if (account != null) {
             val party = Party.finder.query()
                     .where()
@@ -102,9 +104,10 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
     }
 
     val myParties = Route { req, res ->
-        val userId: Long? = req.session().attribute("user_id") ?: 0
-        val loginToken: String = req.queryParams("loginToken")
-        val account = Account.finder.byId(userId)
+        val userId: Long? = req.session().attribute("user_id")
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
+
         if (account != null) {
             val parties = Party.finder.query().where().eq("members.id", account.id).findList()
 
@@ -117,12 +120,13 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
     }
 
     val joinParty = Route { req, res ->
-        val userId: Long? = req.session().attribute("user_id") ?: 0
-        val account = Account.finder.byId(userId)
-        if (account != null) {
-            val request: JoinPartyRequest = mapper.readValue(req.body())
+        val userId: Long = req.session().attribute("user_id")
+        val partyId: Long = req.params(":id").toLongOrNull() ?: 0
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
 
-            val party = Party.finder.byId(request.id)
+        if (account != null) {
+            val party = Party.finder.byId(partyId)
             if (party != null) {
                 if (account.activeParty != null && account.activeParty == party) {
                     party.response(false)
@@ -153,10 +157,12 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
     }
 
     val leaveParty = Route { req, res ->
-        val userId: Long? = req.session().attribute("user_id") ?: 0
-        val partyId: Long? = req.queryParams("partyId")?.toLong()
+        val userId: Long? = req.session().attribute("user_id")
+        val partyId: Long? = req.params(":id")?.toLong()
         val remove: Boolean = req.queryParamOrDefault("remove", "false").toBoolean()
-        val account = Account.finder.byId(userId)
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
+
         if (account != null) {
             val party = Party.finder.query()
                     .where()
@@ -194,8 +200,10 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
     }
 
     val createParty = Route { req, res ->
-        val userId: Long? = req.session().attribute("user_id") ?: 0
-        val account = Account.finder.byId(userId)
+        val userId: Long? = req.session().attribute("user_id")
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
+
         if (account != null) {
             val request: CreatePartyRequest = mapper.readValue(req.body())
 
@@ -224,9 +232,11 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
     }
 
     val changeActiveParty = Route { req, res ->
-        val userId: Long? = req.session().attribute("user_id") ?: 0
+        val userId: Long? = req.session().attribute("user_id")
         val partyId: Long? = req.queryParams("partyId").toLong()
-        val account = Account.finder.byId(userId)
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
+
         if (account != null) {
             val party = Party.finder.query()
                     .where()
@@ -252,16 +262,17 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
     }
 
     val updatePartySettings = Route { req, res ->
-        val userId: Long? = req.session().attribute("user_id") ?: 0
-        val account = Account.finder.byId(userId)
+        val userId: Long? = req.session().attribute("user_id")
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
 
         val partyId: Long? = req.params(":id").toLong()
         val party = Party.finder.byId(partyId)
         if (account != null && party != null && party.owner?.id == userId) {
-            val req: UpdatePartyRequest = mapper.readValue(req.body())
-            party.access = req.access ?: party.access
-            party.name = req.name ?: party.name
-            party.description = req.description ?: party.description
+            val updateReq: UpdatePartyRequest = mapper.readValue(req.body())
+            party.access = updateReq.access ?: party.access
+            party.name = updateReq.name ?: party.name
+            party.description = updateReq.description ?: party.description
             party.update()
 
             party.response(false, true)
@@ -274,13 +285,13 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
         val multipartConfigElement = MultipartConfigElement("/tmp/")
         req.raw().setAttribute("org.eclipse.jetty.multipartConfig", multipartConfigElement)
 
-        val userId: Long? = req.session().attribute("user_id") ?: 0
-        val account = Account.finder.byId(userId)
+        val userId: Long? = req.session().attribute("user_id")
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
 
         val partyId: Long? = req.params(":id").toLong()
         val party = Party.finder.byId(partyId)
-        println(userId)
-        println(partyId)
+
         if (account != null && party != null && party.owner?.id == userId) {
             val filePart = req.raw().getPart("file")
             var fileName = filePart.submittedFileName
@@ -321,8 +332,9 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
     }
 
     val kickPartyMember = Route { req, res ->
-        val userId: Long? = req.session().attribute("user_id") ?: 0
-        val account = Account.finder.byId(userId)
+        val userId: Long? = req.session().attribute("user_id")
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
 
         val partyId: Long? = req.params(":id").toLong()
         val party = Party.finder.byId(partyId)
@@ -348,7 +360,6 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
             PartyWebSocket.sendPartyUpdate(party, party.members)
 
             party.response(false)
-            party.members
         } else {
             println(partyId)
             println(userId)
@@ -362,8 +373,6 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
 }
 
 data class CreatePartyRequest(val name: String, val description: String)
-
-data class JoinPartyRequest(val id: Long)
 
 data class MyPartiesResponse(val activeParty: PartyResponse?, val parties: Set<PartyResponse>?)
 

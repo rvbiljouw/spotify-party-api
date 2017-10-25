@@ -35,21 +35,21 @@ class MusicEndpoint : Endpoint {
         val account = Account.find(userId, loginToken)
 
         if (account != null) {
-                val songs = Spotify.searchSongs(account.accessToken!!, account.refreshToken!!, filters, offset, limit)
+            val songs = Spotify.searchSongs(account.accessToken!!, account.refreshToken!!, filters, offset, limit)
 
-                if (songs != null) {
-                    res.header("X-Max-Records", songs.total.toString())
-                    res.header("X-Offset", (offset).toString())
+            if (songs != null) {
+                res.header("X-Max-Records", songs.total.toString())
+                res.header("X-Offset", (offset).toString())
 
-                    songs.items.map { t -> t.fromSpotify(true) }
-                } else {
-                    res.status(500)
-                    mapOf("error" to "Unable to get songs.")
-                }
+                songs.items.map { t -> t.fromSpotify(true) }
             } else {
-                res.status(403)
-                mapOf("error" to "You're not logged in.")
+                res.status(500)
+                mapOf("error" to "Unable to get songs.")
             }
+        } else {
+            res.status(403)
+            mapOf("error" to "You're not logged in.")
+        }
     }
 
     val searchAlbums = Route { req, res ->
@@ -59,24 +59,19 @@ class MusicEndpoint : Endpoint {
 
         val userId: Long? = req.session().attribute("user_id")
         val loginToken: String? = req.queryParams("loginToken")
-        if (userId != null || loginToken != null) {
-            val account = if (userId != null) Account.finder.byId(userId)
-            else Account.finder.query().where().eq("loginToken", loginToken).findUnique()
-            if (account != null) {
-                val albums = Spotify.searchAlbums(account.accessToken!!, account.refreshToken!!, filters, offset, limit)
+        val account = Account.find(userId, loginToken)
 
-                if (albums != null) {
-                    res.header("X-Max-Records", albums.total.toString())
-                    res.header("X-Offset", (offset).toString())
+        if (account != null) {
+            val albums = Spotify.searchAlbums(account.accessToken!!, account.refreshToken!!, filters, offset, limit)
 
-                    albums.items.map { t -> t.fromSpotify() }
-                } else {
-                    res.status(500)
-                    mapOf("error" to "Unable to get albums.")
-                }
+            if (albums != null) {
+                res.header("X-Max-Records", albums.total.toString())
+                res.header("X-Offset", (offset).toString())
+
+                albums.items.map { t -> t.fromSpotify() }
             } else {
-                res.status(403)
-                mapOf("error" to "You're not logged in.")
+                res.status(500)
+                mapOf("error" to "Unable to get albums.")
             }
         } else {
             res.status(403)
@@ -91,24 +86,19 @@ class MusicEndpoint : Endpoint {
 
         val userId: Long? = req.session().attribute("user_id")
         val loginToken: String? = req.queryParams("loginToken")
-        if (userId != null || loginToken != null) {
-            val account = if (userId != null) Account.finder.byId(userId)
-            else Account.finder.query().where().eq("loginToken", loginToken).findUnique()
-            if (account != null) {
-                val artists = Spotify.searchArtists(account.accessToken!!, account.refreshToken!!, filters, offset, limit)
+        val account = Account.find(userId, loginToken)
 
-                if (artists != null) {
-                    res.header("X-Max-Records", artists.total.toString())
-                    res.header("X-Offset", (offset).toString())
+        if (account != null) {
+            val artists = Spotify.searchArtists(account.accessToken!!, account.refreshToken!!, filters, offset, limit)
 
-                    artists.items.map { t -> t.fromSpotify() }
-                } else {
-                    res.status(500)
-                    mapOf("error" to "Unable to get artists.")
-                }
+            if (artists != null) {
+                res.header("X-Max-Records", artists.total.toString())
+                res.header("X-Offset", (offset).toString())
+
+                artists.items.map { t -> t.fromSpotify() }
             } else {
-                res.status(403)
-                mapOf("error" to "You're not logged in.")
+                res.status(500)
+                mapOf("error" to "Unable to get artists.")
             }
         } else {
             res.status(403)
