@@ -35,11 +35,14 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
 
     override fun init() {
         Spark.get("/api/v1/parties", getAll, JacksonResponseTransformer())
-        Spark.post("/api/v1/party", search, JacksonResponseTransformer())
+        Spark.get("/api/v1/parties/popular", getMostPopular, JacksonResponseTransformer())
+        Spark.get("/api/v1/parties/new", getNew, JacksonResponseTransformer())
+
+        Spark.post("/api/v1/parties", search, JacksonResponseTransformer())
 
         Spark.get("/api/v1/party", myParties, JacksonResponseTransformer())
         Spark.get("/api/v1/party/:id", getById, JacksonResponseTransformer())
-        Spark.put("/api/v1/party/:id", joinParty, JacksonResponseTransformer())
+        Spark.put("/api/v1/party/:id/members", joinParty, JacksonResponseTransformer())
         Spark.delete("/api/v1/party/:id", leaveParty, JacksonResponseTransformer())
         Spark.post("/api/v1/party", createParty, JacksonResponseTransformer())
         Spark.put("/api/v1/party/activate", changeActiveParty, JacksonResponseTransformer())
@@ -66,6 +69,38 @@ class PartyEndpoint(val partyHandler: PartyHandler) : Endpoint {
                 query = query.orderBy().asc(sort)
             }
         }
+
+        val results = query.findPagedList()
+        results.loadCount()
+
+        res.header("X-Max-Records", results.totalCount.toString())
+        res.header("X-Offset", (offset ?: 0).toString())
+        results.list.map { x -> x.response(true) }
+    }
+
+    val getMostPopular = Route { req, res ->
+        val limit = req.queryParams("limit")?.toInt()
+        val offset = req.queryParams("offset")?.toInt()
+        val query = Party.finder.query().where(Expr.eq("access", PartyAccess.PUBLIC))
+                .orderBy("activeMemberCount desc")
+                .setFirstRow(offset ?: 0)
+                .setMaxRows(limit ?: 25)
+
+        val results = query.findPagedList()
+        results.loadCount()
+
+        res.header("X-Max-Records", results.totalCount.toString())
+        res.header("X-Offset", (offset ?: 0).toString())
+        results.list.map { x -> x.response(true) }
+    }
+
+    val getNew = Route { req, res ->
+        val limit = req.queryParams("limit")?.toInt()
+        val offset = req.queryParams("offset")?.toInt()
+        val query = Party.finder.query().where(Expr.eq("access", PartyAccess.PUBLIC))
+                .orderBy("created desc")
+                .setFirstRow(offset ?: 0)
+                .setMaxRows(limit ?: 25)
 
         val results = query.findPagedList()
         results.loadCount()

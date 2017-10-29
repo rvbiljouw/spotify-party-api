@@ -4,7 +4,7 @@ import com.wrapper.spotify.Api
 import uk.bipush.party.model.Account
 import uk.bipush.party.util.Spotify
 
-class TokenRefresher: Runnable {
+class TokenRefresher : Runnable {
 
     companion object {
         val api = Api.builder()
@@ -35,6 +35,7 @@ class TokenRefresher: Runnable {
                         .refreshToken(acc.refreshToken)
                         .build().get()
                 acc.accessToken = newToken.accessToken
+                println("updated token for yo boy")
                 acc.update()
             })
             offset += results.list.size

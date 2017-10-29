@@ -1,6 +1,8 @@
 package uk.bipush.party.handler
 
+import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
+import uk.bipush.party.endpoint.net.ChatMessage
 import uk.bipush.party.endpoint.net.PartyWebSocket
 import uk.bipush.party.model.Account
 import uk.bipush.party.model.Party
@@ -33,7 +35,6 @@ class PartyHandler : Runnable {
     }
 
     private fun playNext(partyId: Long) {
-        println("adasdfadf)")
         if (activeParties.contains(partyId) || newParties.contains(partyId)) {
             val party = Party.finder.byId(partyId)
             if (party == null) {
@@ -54,6 +55,14 @@ class PartyHandler : Runnable {
                         next.status = PartyQueueEntryStatus.PLAYING
 
                         next.update()
+
+                        try {
+                            party.nowPlaying = next
+
+                            party.update()
+                        } catch (t: Throwable) {
+                            t.printStackTrace()
+                        }
 
                         PartyWebSocket.sendQueueUpdate(queue, party.members)
 
@@ -101,6 +110,8 @@ class PartyHandler : Runnable {
         if (nowPlaying != null) {
             playSong(listOf(account), nowPlaying, ((System.currentTimeMillis() - nowPlaying.playedAt)) + 200)
         }
+
+        PartyWebSocket.sendChatMessage(ChatMessage("", "${account.displayName} just joined the party.", false, false, true, DateTime.now()), party.members)
     }
 
     fun addParty(partyId: Long) {

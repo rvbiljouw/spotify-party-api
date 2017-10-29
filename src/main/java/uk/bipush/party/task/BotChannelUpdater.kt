@@ -26,15 +26,22 @@ class BotChannelUpdater(val partyHandler: PartyHandler) : Runnable {
             .registerModule(JodaModule())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     val botChannels: List<BotChannel> = listOf(
-            BotChannel(name = "ASOT", description = "ASOT", keywords = listOf(
+            BotChannel(name = "ASOT", description = "The best of Trance.", keywords = listOf(
                     "armin van buuren",
                     "aly fila",
                     "cosmic gate",
                     "ferry corsten"
             )),
-            BotChannel(name = "Ed Sheriff", description = "Omg", keywords = listOf(
-                    "ed sheeran",
-                    "plan b"
+            BotChannel(name = "EDM", description = "Top quality EDM.", keywords = listOf(
+                    "martin garrix",
+                    "hardwell",
+                    "tiesto"
+            )),
+            BotChannel(name = "Hardstyle", description = "Harder music.", keywords = listOf(
+                    "psycho punkz",
+                    "radical redemption",
+                    "headhunterz",
+                    "brennan heart"
             ))
     )
     val api: Api
@@ -76,7 +83,7 @@ class BotChannelUpdater(val partyHandler: PartyHandler) : Runnable {
             }
 
             val queue = PartyQueue.forParty(party, 0, 25)
-            if (queue.entries.size < 1000) {
+            if (queue.entries.size < 10) {
                 if (channel.urlFeed != null) {
                     val request = Request.Builder()
                             .url(channel.urlFeed)

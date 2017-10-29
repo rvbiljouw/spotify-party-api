@@ -23,6 +23,7 @@ class QueueEndpoint : Endpoint {
 
     override fun init() {
         Spark.get("/api/v1/queue", getQueue, JacksonResponseTransformer())
+        Spark.get("/api/v1/queue/history", getHistory, JacksonResponseTransformer())
         Spark.post("/api/v1/queue", queueSong, JacksonResponseTransformer())
         Spark.put("/api/v1/queue", voteSong, JacksonResponseTransformer())
     }
@@ -39,6 +40,41 @@ class QueueEndpoint : Endpoint {
             val party = if (partyId != null) Party.finder.byId(partyId) else account.activeParty
             if (party != null) {
                 PartyQueue.forParty(party, offset, limit).response(false)
+            } else {
+                res.status(403)
+                mapOf("error" to "You have no active party.")
+            }
+        } else {
+            res.status(403)
+            mapOf("error" to "You're not logged in.")
+        }
+    }
+
+    val getHistory = Route { req, res ->
+        val userId: Long? = req.session().attribute("user_id")
+        val partyId: Long? = req.queryParams("party")?.toLong()
+        val limit = req.queryParams("limit")?.toInt() ?: 25
+        val offset = req.queryParams("offset")?.toInt() ?: 0
+        val loginToken: String? = req.queryParams("loginToken")
+        val account = Account.find(userId, loginToken)
+
+        if (account != null) {
+            val party = if (partyId != null) Party.finder.byId(partyId) else account.activeParty
+            if (party != null) {
+                val entries = PartyQueueEntry.finder.query()
+                        .where()
+                        .eq("party.id", party.id)
+                        .eq("status", PartyQueueEntryStatus.PLAYED)
+                        .setFirstRow(offset)
+                        .setMaxRows(limit)
+                        .order().desc("playedAt")
+                        .findPagedList()
+
+                entries.loadCount()
+
+                res.header("X-Max-Records", entries.totalCount.toString())
+                res.header("X-Offset", offset.toString())
+                entries.list.map { it.response(false, false) }
             } else {
                 res.status(403)
                 mapOf("error" to "You have no active party.")

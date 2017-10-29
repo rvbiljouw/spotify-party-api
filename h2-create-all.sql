@@ -31,10 +31,12 @@ create table account_link (
 create table party (
   id                            bigint auto_increment not null,
   owner_id                      bigint,
+  active_member_count           integer not null,
   name                          varchar(255),
   description                   varchar(255),
   background_url                varchar(255),
   password                      varchar(255),
+  now_playing_id                bigint,
   status                        varchar(7),
   access                        varchar(8),
   created                       timestamp not null,
@@ -97,6 +99,9 @@ create index ix_account_link_account_id on account_link (account_id);
 
 alter table party add constraint fk_party_owner_id foreign key (owner_id) references account (id) on delete restrict on update restrict;
 create index ix_party_owner_id on party (owner_id);
+
+alter table party add constraint fk_party_now_playing_id foreign key (now_playing_id) references party_queue_entry (id) on delete restrict on update restrict;
+create index ix_party_now_playing_id on party (now_playing_id);
 
 alter table party_account add constraint fk_party_account_party foreign key (party_id) references party (id) on delete restrict on update restrict;
 create index ix_party_account_party on party_account (party_id);

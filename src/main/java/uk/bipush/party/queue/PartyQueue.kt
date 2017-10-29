@@ -1,5 +1,7 @@
 package uk.bipush.party.queue
 
+import org.joda.time.DateTime
+import uk.bipush.party.endpoint.net.ChatMessage
 import uk.bipush.party.endpoint.net.PartyWebSocket
 import uk.bipush.party.model.*
 
@@ -50,6 +52,8 @@ class PartyQueue {
             entry.save()
 
             PartyWebSocket.sendQueueUpdate(PartyQueue.forParty(party), party.members)
+            PartyWebSocket.sendChatMessage(ChatMessage("", "${account.displayName} queued up ${artist} - ${title}", false, false, true, DateTime.now()), party.members)
+
 
             return entry
         }

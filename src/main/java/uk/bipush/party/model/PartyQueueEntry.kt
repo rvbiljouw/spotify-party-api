@@ -45,7 +45,7 @@ class PartyQueueEntry : Model() {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as Account
+        other as PartyQueueEntry
 
         if (id != other.id) return false
 
@@ -81,11 +81,13 @@ class PartyQueueEntryResponse {
     var updated: DateTime? = null
 }
 
-fun PartyQueueEntry.response(withTokens: Boolean = false): PartyQueueEntryResponse {
+fun PartyQueueEntry.response(withTokens: Boolean = false, withParty: Boolean = true): PartyQueueEntryResponse {
     val self = this
     return PartyQueueEntryResponse().apply {
         this.id = self.id
-        this.party = self.party?.response(withTokens)
+        if (withParty) {
+            this.party = self.party?.response(withTokens)
+        }
         this.member = self.member?.response(withTokens, false)
         this.artist = self.artist
         this.title = self.title

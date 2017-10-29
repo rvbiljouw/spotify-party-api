@@ -7,6 +7,9 @@ drop index if exists ix_account_link_account_id;
 alter table party drop constraint if exists fk_party_owner_id;
 drop index if exists ix_party_owner_id;
 
+alter table party drop constraint if exists fk_party_now_playing_id;
+drop index if exists ix_party_now_playing_id;
+
 alter table party_account drop constraint if exists fk_party_account_party;
 drop index if exists ix_party_account_party;
 
