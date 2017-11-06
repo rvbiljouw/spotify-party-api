@@ -5,12 +5,15 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.wrapper.spotify.Api
-import com.wrapper.spotify.models.*
+import com.wrapper.spotify.models.Artist
+import com.wrapper.spotify.models.Page
+import com.wrapper.spotify.models.SimpleAlbum
+import com.wrapper.spotify.models.Track
 import okhttp3.MediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
-import java.net.URLEncoder
+import java.util.*
 
 
 object Spotify {
@@ -21,6 +24,23 @@ object Spotify {
 
     val mapper = ObjectMapper().registerModule(KotlinModule())
 
+    val timer = Timer()
+    val api: Api
+
+    init {
+        api = Api.builder()
+                .clientId(Spotify.CLIENT_ID)
+                .clientSecret(Spotify.CLIENT_SECRET)
+                .redirectURI("${Spotify.API_HOST}/callback")
+                .build()
+        refreshToken()
+    }
+
+    fun refreshToken() {
+        val creds = api.clientCredentialsGrant().build().get()
+        api.setAccessToken(creds.accessToken)
+    }
+
     fun play(track: String, playTargets: List<PlayTarget>, position: Long, retry: Boolean = true) {
         val requestR = mapOf("uris" to arrayOf(track))
         val reqBody = RequestBody.create(MediaType.parse("application/json"), mapper.writeValueAsString(requestR))
@@ -29,30 +49,47 @@ object Spotify {
             val deviceId = it.device
             val token = it.token
             Thread {
-                val url = "https://api.spotify.com/v1/me/player/play" + if (deviceId != null) "device_id=$deviceId" else ""
-                val request = Request.Builder()
-                        .url(url)
-                        .addHeader("Authorization", "Bearer $token")
-                        .put(reqBody)
-                        .build()
-                val client = OkHttpClient()
-                val response = client.newCall(request).execute()
-                if (response.isSuccessful) {
-                    if (response.code() == 202 && retry) {
+                println("sending play! ${deviceId} ${token}")
+
+
+                var successful: Boolean = false
+                var cycleCount = 0
+                while (!successful) {
+                    val url = "https://api.spotify.com/v1/me/player/play" + if (deviceId != null) "&device_id=$deviceId" else ""
+                    val request = Request.Builder()
+                            .url(url)
+                            .addHeader("Authorization", "Bearer $token")
+                            .put(reqBody)
+                            .build()
+                    val client = OkHttpClient()
+                    val response = client.newCall(request).execute()
+                    if (response.isSuccessful) {
+                        if (response.code() == 202 && successful) {
 //                        return play(track, token, deviceId, offset, false)
-                        println("Retry required for ${it}")
+                            println("Retry required for ${it}")
+                            response.close()
+                            successful = !retry
+                        } else {
+                            response.close()
 
+                            if (position > 0) {
+                                seek(position, it, true)
+                            }
+                            successful = true
+                        }
+                    } else {
+                        response.close()
+                        println(response)
+                        println("Request failed for ${it}")
+                        successful = !retry
+                    }
+                    cycleCount++
+
+                    if (cycleCount > 5) {
+                        return@Thread
                     }
 
-                    response.close()
-
-                    if (position > 0) {
-                        seek(position, it, true)
-                    }
-                } else {
-                    response.close()
-                    println(response)
-                    println("Request failed for ${it}")
+                    Thread.sleep(200)
                 }
             }
         }.forEach { it.start() }
@@ -114,14 +151,6 @@ object Spotify {
     }
 
     fun searchSongs(accessToken: String, refreshToken: String, filters: List<SpotifyFilter>, offset: Int = 0, limit: Int = 25): Page<Track>? {
-        val api = Api.builder()
-                .clientId(Spotify.CLIENT_ID)
-                .clientSecret(Spotify.CLIENT_SECRET)
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .redirectURI("${Spotify.API_HOST}/callback")
-                .build()
-
         return api.searchTracks(filters.joinToString("+") { f -> f.compile() })
                 .market("GB")
                 .offset(offset)
@@ -131,7 +160,7 @@ object Spotify {
     }
 
 
-    fun searchSongsByQueryM(api: Api, query: String, offset: Int = 0, limit: Int = 25): Page<Track>? {
+    fun searchSongsByQueryM(query: String, offset: Int = 0, limit: Int = 25): Page<Track>? {
         return api.searchTracks(query.replace(" ", "+"))
                 .market("GB")
                 .offset(offset)
@@ -141,15 +170,6 @@ object Spotify {
     }
 
     fun searchSongsByQuery(accessToken: String, refreshToken: String, query: String, offset: Int = 0, limit: Int = 25): Page<Track>? {
-        val api = Api.builder()
-                .clientId(Spotify.CLIENT_ID)
-                .clientSecret(Spotify.CLIENT_SECRET)
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .redirectURI("${Spotify.API_HOST}/callback")
-                .build()
-
-        println(query)
         return api.searchTracks(query.replace(" ", "+"))
                 .market("GB")
                 .offset(offset)
@@ -159,14 +179,6 @@ object Spotify {
     }
 
     fun searchAlbums(accessToken: String, refreshToken: String, filters: List<SpotifyFilter>, offset: Int = 0, limit: Int = 25): Page<SimpleAlbum>? {
-        val api = Api.builder()
-                .clientId(Spotify.CLIENT_ID)
-                .clientSecret(Spotify.CLIENT_SECRET)
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .redirectURI("${Spotify.API_HOST}/callback")
-                .build()
-
         return api.searchAlbums(filters.joinToString(" ") { f -> f.compile() })
                 .offset(offset)
                 .limit(limit)
@@ -175,14 +187,6 @@ object Spotify {
     }
 
     fun searchArtists(accessToken: String, refreshToken: String, filters: List<SpotifyFilter>, offset: Int = 0, limit: Int = 25): Page<Artist>? {
-        val api = Api.builder()
-                .clientId(Spotify.CLIENT_ID)
-                .clientSecret(Spotify.CLIENT_SECRET)
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .redirectURI("${Spotify.API_HOST}/callback")
-                .build()
-
         return api.searchArtists(filters.joinToString(" ") { f -> f.compile() })
                 .offset(offset)
                 .limit(limit)

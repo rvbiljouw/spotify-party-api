@@ -12,7 +12,6 @@ import uk.bipush.party.util.SpotifyFilter
 import java.util.concurrent.TimeUnit
 
 
-
 object SlackCommandHandlers {
     private val mapper = ObjectMapper()
             .registerModule(KotlinModule())
@@ -108,55 +107,56 @@ object SlackCommandHandlers {
     }
 
     fun handleSearchSongs(account: Account, slackCommandRequest: SlackCommandRequest): SlackActionResponse {
-        val text = slackCommandRequest.text
-        if (text == null || text.isBlank()) {
-            return SlackActionResponse("ephemeral", false, "Please enter something to search for")
-        } else {
-            if (account.activeParty != null) {
-                val split = text.split(";")
-                val song = makeFilter("TRACK", split[0])
-                val album = if (split.size > 1) makeFilter("ALBUM", split[1]) else null
-                val artist = if (split.size > 2) makeFilter("ARTIST", split[2]) else null
-
-                val tracks = Spotify.searchSongs(account.accessToken!!, account.refreshToken!!,
-                        listOf(song, album, artist).filterNotNull(), 0, 5)
-
-                if (tracks?.total == 0 || tracks?.items == null) {
-                    return SlackActionResponse("ephemeral", false, "Unable to find any songs")
-                } else {
-                    val attachment = SlackAttachment(
-                            text = "Click a song to queue it to your current party (${account.activeParty?.name})",
-                            fallback = "Unable to queue song",
-                            callbackId = "song_select",
-                            color = "#3AA3E3",
-                            actions = tracks.items?.map { track ->
-                                val trackArtist = if (track.artists.isNotEmpty()) track.artists[0] else null
-                                SlackAction(
-                                        text = "${track.name} - ${trackArtist?.name ?: ""}",
-                                        name = account.id.toString(),
-                                        value = mapper.writeValueAsString(
-                                                SongSelect(
-                                                        title = track.name,
-                                                        artist = trackArtist?.name ?: "",
-                                                        duration = track.duration,
-                                                        thumbnail =
-                                                        if (track.album?.images?.isNotEmpty() == true) track.album.images[0].url else "",
-                                                        uri = track.uri
-                                                )
-                                        ),
-                                        type = "button"
-                                )
-                            } ?: emptyList()
-                    )
-
-                    return SlackActionResponse("ephemeral", false,
-                            "Results for ${slackCommandRequest.userName}'s search",
-                            listOf(attachment))
-                }
-            } else {
-                return SlackActionResponse("ephemeral", false, "You need to have an active party to search for songs")
-            }
-        }
+//        val text = slackCommandRequest.text
+//        if (text == null || text.isBlank()) {
+//            return SlackActionResponse("ephemeral", false, "Please enter something to search for")
+//        } else {
+//            if (account.activeParty != null) {
+//                val split = text.split(";")
+//                val song = makeFilter("TRACK", split[0])
+//                val album = if (split.size > 1) makeFilter("ALBUM", split[1]) else null
+//                val artist = if (split.size > 2) makeFilter("ARTIST", split[2]) else null
+//
+//                val tracks = Spotify.searchSongs(account.spotifyAccessToken!!, account.spotifyRefreshToken!!,
+//                        listOf(song, album, artist).filterNotNull(), 0, 5)
+//
+//                if (tracks?.total == 0 || tracks?.items == null) {
+//                    return SlackActionResponse("ephemeral", false, "Unable to find any songs")
+//                } else {
+//                    val attachment = SlackAttachment(
+//                            text = "Click a song to queue it to your current party (${account.activeParty?.name})",
+//                            fallback = "Unable to queue song",
+//                            callbackId = "song_select",
+//                            color = "#3AA3E3",
+//                            actions = tracks.items?.map { track ->
+//                                val trackArtist = if (track.artists.isNotEmpty()) track.artists[0] else null
+//                                SlackAction(
+//                                        text = "${track.name} - ${trackArtist?.name ?: ""}",
+//                                        name = account.id.toString(),
+//                                        value = mapper.writeValueAsString(
+//                                                SongSelect(
+//                                                        title = track.name,
+//                                                        artist = trackArtist?.name ?: "",
+//                                                        duration = track.duration,
+//                                                        thumbnail =
+//                                                        if (track.album?.images?.isNotEmpty() == true) track.album.images[0].url else "",
+//                                                        uri = track.uri
+//                                                )
+//                                        ),
+//                                        type = "button"
+//                                )
+//                            } ?: emptyList()
+//                    )
+//
+//                    return SlackActionResponse("ephemeral", false,
+//                            "Results for ${slackCommandRequest.userName}'s search",
+//                            listOf(attachment))
+//                }
+//            } else {
+//                return SlackActionResponse("ephemeral", false, "You need to have an active party to search for songs")
+//            }
+//        }
+        return SlackActionResponse("ephemeral", false, "TODO - fix this")
     }
 
     private fun makeFilter(field: String, value: String): SpotifyFilter {

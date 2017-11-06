@@ -1,111 +1,76 @@
 package uk.bipush.party.endpoint
 
-import com.google.common.cache.CacheBuilder
-import com.wrapper.spotify.Api
-import com.wrapper.spotify.models.AuthorizationCodeCredentials
-import io.ebean.Expr
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.joda.JodaModule
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.google.api.client.auth.oauth2.TokenResponse
+import org.hibernate.validator.constraints.Email
+import org.hibernate.validator.constraints.NotEmpty
+import org.mindrot.jbcrypt.BCrypt
 import spark.Route
-import spark.Spark
+import spark.route.HttpMethod
+import uk.bipush.http.Endpoint
+import uk.bipush.http.auth.Auth
+import uk.bipush.http.response.Errors
+import uk.bipush.http.response.error
+import uk.bipush.http.response.response
+import uk.bipush.http.util.ValidatedRequest
+import uk.bipush.http.util.validate
 import uk.bipush.party.model.Account
-import uk.bipush.party.util.JacksonResponseTransformer
-import uk.bipush.party.util.Spotify
+import uk.bipush.party.model.LoginToken
+import uk.bipush.party.model.LoginTokenResponse
+import uk.bipush.party.model.LoginTokenStatus
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 /**
  * @author rvbiljouw
  */
-class LoginEndpoint : Endpoint {
-    private val authCache = CacheBuilder.newBuilder()
-            .expireAfterWrite(5L, TimeUnit.MINUTES)
-            .build<String, AuthorizationCodeCredentials>()
+class LoginEndpoint {
 
     companion object {
-        val api = Api.builder()
-                .clientId(Spotify.CLIENT_ID)
-                .clientSecret(Spotify.CLIENT_SECRET)
-                .redirectURI("${Spotify.API_HOST}/callback")
-                .build()
+        val mapper = ObjectMapper()
+                .registerModule(KotlinModule())
+                .registerModule(JodaModule())
     }
 
-    private val login = Route { req, res ->
-        val redirectUrl = req.queryParams("redirectUrl")
-        val scopes = listOf<String>("user-modify-playback-state", "user-read-playback-state")
-        val authorizeURL = api.createAuthorizeURL(scopes, redirectUrl)
-
-        res.redirect(authorizeURL)
+    @field:Auth
+    @field:Endpoint(method = HttpMethod.get, uri = "/api/v1/login")
+    val validate = Route { req, res ->
+        val token: LoginToken = req.attribute("account")
+        LoginTokenResponse(token)
     }
 
-    private val callback = Route { req, res ->
-        try {
-            val state = req.queryParams("state")
-            val code = req.queryParams("code")
-
-            var credentials = authCache.getIfPresent(code)
-            if (credentials == null) {
-                val api = Api.builder()
-                        .clientId(Spotify.CLIENT_ID)
-                        .clientSecret(Spotify.CLIENT_SECRET)
-                        .redirectURI("${Spotify.API_HOST}/callback")
-                        .build()
-                credentials = api.authorizationCodeGrant(code).build().get()
-                authCache.put(code, credentials)
-            }
-
-            val spotifyUser = api.me.accessToken(credentials?.accessToken).build().get()
-            when {
-                credentials == null -> {
-                    res.status(400)
-                    mapOf("success" to false, "error" to "Couldn't retrieve token.")
-                }
-                spotifyUser == null -> {
-                    res.status(400)
-                    mapOf("success" to false, "error" to "Couldn't retrieve user account.")
-                }
-                else -> {
-                    var account = Account.finder.query().where(Expr.eq("spotifyId", spotifyUser.id)).findOne()
-                    if (account == null) {
-                        account = Account().apply {
-                            this.accessToken = credentials!!.accessToken
-                            this.refreshToken = credentials!!.refreshToken
-                            this.spotifyId = spotifyUser.id
-                            this.displayName = if (spotifyUser.displayName?.isNotBlank() == true)
-                                spotifyUser.displayName
-                            else
-                                spotifyUser.id
-                        }
-                    } else {
-                        account.accessToken = credentials.accessToken
-                        account.refreshToken = credentials.refreshToken
+    @field:Endpoint(method = HttpMethod.post, uri = "/api/v1/login")
+    val login = Route { req, res ->
+        val loginRequest: LoginRequest = mapper.readValue(req.body())
+        val errors = loginRequest.validate()
+        if (errors.isEmpty()) {
+            val account = Account.finder.query().where()
+                    .eq("email", loginRequest.email)
+                    .findUnique()
+            if (account != null && BCrypt.checkpw(loginRequest.password, account.password)) {
+                if (account.loginToken == null) {
+                    account.loginToken = LoginToken().apply {
+                        this.account = account
+                        this.userAgent = req.userAgent()
+                        this.ipAddress = req.ip()
+                        this.status = LoginTokenStatus.ACTIVE
+                        this.token = UUID.randomUUID().toString()
                     }
-
-                    if (account.loginToken == null) {
-                        account.loginToken = UUID.randomUUID().toString();
-                    }
-
+                    account.loginToken?.save()
                     account.save()
-
-                    req.session(true).attribute("user_id", account.id)
-
-                    if (state?.isNotBlank() == true) {
-                        res.redirect("$state?loginToken=${account.loginToken}")
-                    } else {
-                        res.redirect(Spotify.FRONTEND_HOST)
-                    }
                 }
+                req.session(true).attribute("token", account.loginToken?.token)
+                LoginTokenResponse(account.loginToken!!)
+            } else {
+                res.error(Errors.forbidden, "Invalid login credentials")
             }
-        } catch (t: Throwable) {
-            t.printStackTrace()
-            val exId = UUID.randomUUID().toString()
-
-            res.status(500)
-            mapOf("error" to "An error occurred - $exId")
+        } else {
+            res.error(Errors.badRequest, errors.map { it.response() })
         }
     }
 
-    override fun init() {
-        Spark.get("/api/v1/login", login)
-        Spark.get("/callback", callback, JacksonResponseTransformer())
-    }
-
 }
+
+data class LoginRequest(@field:NotEmpty @field:Email val email: String?, @field:NotEmpty val password: String?) : ValidatedRequest()

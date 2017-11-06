@@ -36,6 +36,15 @@ spec:
               value: "194401792065.259741540464"
             - name: SLACK_CLIENT_SECRET
               value: c23c98e7536dc26c134851d28fc97fbb
+            - name: AWSUMIO_JDBC_STRING
+              value: jdbc:mysql://--NODE_HOSTNAME--:3306/awsumio?useSSL=false
+            - name: AWSUMIO_JDBC_PASSWORD
+              value: ""
+            - name: AWSUMIO_JDBC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cloudsql-db-credentials
+                  key: username
             - name: NODE_HOSTNAME
               valueFrom:
                fieldRef:

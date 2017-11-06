@@ -15,6 +15,10 @@ enum class PartyAccess {
     PUBLIC, PRIVATE, PASSWORD
 }
 
+enum class PartyType {
+    YOUTUBE, SOUNDCLOUD, SPOTIFY
+}
+
 @Entity
 class Party : Model() {
 
@@ -26,11 +30,8 @@ class Party : Model() {
     var id: Long = 0
     @ManyToOne
     var owner: Account? = null
-    @ManyToMany
-    var members: MutableSet<Account> = mutableSetOf()
-    @ManyToMany
-    @JoinTable(name = "active_party_members")
-    var activeMembers: MutableSet<Account> = mutableSetOf()
+    @OneToMany
+    var members: MutableSet<PartyMember> = mutableSetOf()
     var activeMemberCount: Int = 0
     var name: String? = ""
     var description: String? = ""
@@ -42,6 +43,8 @@ class Party : Model() {
     var status: PartyStatus? = PartyStatus.ONLINE
     @Enumerated(value = EnumType.STRING)
     var access: PartyAccess? = PartyAccess.PRIVATE
+    @Enumerated(value = EnumType.STRING)
+    var type: PartyType? = PartyType.SPOTIFY
     @CreatedTimestamp
     var created: DateTime? = null
     @UpdatedTimestamp
@@ -66,8 +69,7 @@ class Party : Model() {
 class PartyResponse {
     var id: Long = 0
     var owner: AccountResponse? = null
-    var activeMembers: MutableSet<AccountResponse> = mutableSetOf()
-    var members: MutableSet<AccountResponse> = mutableSetOf()
+    var members: MutableSet<PartyMemberResponse> = mutableSetOf()
     var activeMemberCount: Int = 0
     var nowPlaying: PartyQueueEntryResponse? = null
     var name: String? = ""
@@ -75,6 +77,7 @@ class PartyResponse {
     var backgroundUrl: String? = ""
     var access: PartyAccess? = null
     var status: PartyStatus? = null
+    var type: PartyType? = null
     var created: DateTime? = null
     var updated: DateTime? = null
 }
@@ -85,11 +88,12 @@ fun Party.response(withTokens: Boolean = false, withChildren: Boolean = true): P
         this.id = self.id
         if (withChildren) {
             this.owner = self.owner?.response(withTokens, false)
-            this.members = self.members.map { m -> m.response(false, false) }.toMutableSet()
-            this.activeMembers = self.activeMembers.map { m -> m.response(false, false) }.toMutableSet()
+            this.members = self.members.map { m -> PartyMemberResponse(m) }.toMutableSet()
         }
 
-        this.activeMemberCount = self.members.size
+        this.type = self.type
+
+        this.activeMemberCount = self.activeMemberCount
         this.nowPlaying = self.nowPlaying?.response(false, false)
         this.name = self.name
         this.description = self.description

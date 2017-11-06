@@ -1,23 +1,38 @@
+alter table account drop foreign key fk_account_subscription_id;
+drop index ix_account_subscription_id on account;
+
 alter table account drop foreign key fk_account_active_party_id;
 drop index ix_account_active_party_id on account;
+
+alter table account drop foreign key fk_account_spotify_id;
+drop index ix_account_spotify_id on account;
+
+alter table account drop foreign key fk_account_login_token_id;
+drop index ix_account_login_token_id on account;
+
+alter table account_achievement drop foreign key fk_account_achievement_account;
+drop index ix_account_achievement_account on account_achievement;
+
+alter table account_achievement drop foreign key fk_account_achievement_achievement;
+drop index ix_account_achievement_achievement on account_achievement;
 
 alter table account_link drop foreign key fk_account_link_account_id;
 drop index ix_account_link_account_id on account_link;
 
+alter table login_token drop foreign key fk_login_token_account_id;
+drop index ix_login_token_account_id on login_token;
+
 alter table party drop foreign key fk_party_owner_id;
 drop index ix_party_owner_id on party;
 
-alter table party_account drop foreign key fk_party_account_party;
-drop index ix_party_account_party on party_account;
+alter table party drop foreign key fk_party_now_playing_id;
+drop index ix_party_now_playing_id on party;
 
-alter table party_account drop foreign key fk_party_account_account;
-drop index ix_party_account_account on party_account;
+alter table party_member drop foreign key fk_party_member_party_id;
+drop index ix_party_member_party_id on party_member;
 
-alter table active_party_members drop foreign key fk_active_party_members_party;
-drop index ix_active_party_members_party on active_party_members;
-
-alter table active_party_members drop foreign key fk_active_party_members_account;
-drop index ix_active_party_members_account on active_party_members;
+alter table party_member drop foreign key fk_party_member_account_id;
+drop index ix_party_member_account_id on party_member;
 
 alter table party_queue_entry drop foreign key fk_party_queue_entry_party_id;
 drop index ix_party_queue_entry_party_id on party_queue_entry;
@@ -31,19 +46,30 @@ drop index ix_party_queue_vote_account_id on party_queue_vote;
 alter table party_queue_vote drop foreign key fk_party_queue_vote_entry_id;
 drop index ix_party_queue_vote_entry_id on party_queue_vote;
 
+alter table spotify_account drop foreign key fk_spotify_account_account_id;
+drop index ix_spotify_account_account_id on spotify_account;
+
 drop table if exists account;
+
+drop table if exists account_achievement;
 
 drop table if exists account_link;
 
+drop table if exists achievement;
+
+drop table if exists login_token;
+
 drop table if exists party;
 
-drop table if exists party_account;
-
-drop table if exists active_party_members;
+drop table if exists party_member;
 
 drop table if exists party_queue_entry;
 
 drop table if exists party_queue_vote;
 
-drop index ix_account_access_token on account;
-drop index ix_account_selected_device on account;
+drop table if exists spotify_account;
+
+drop table if exists subscription;
+
+drop index ix_account_email on account;
+drop index ix_spotify_account_spotify_id on spotify_account;

@@ -5,12 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.joda.JodaModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
 import com.google.common.collect.BiMap
 import com.google.common.collect.EvictingQueue
 import com.google.common.collect.HashBiMap
-import com.sun.org.apache.xpath.internal.operations.Bool
-import io.ebean.Expr
 import org.eclipse.jetty.websocket.api.Session
 import org.eclipse.jetty.websocket.api.WebSocketException
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage
@@ -19,16 +18,16 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect
 import org.eclipse.jetty.websocket.api.annotations.WebSocket
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
-import uk.bipush.party.model.Account
-import uk.bipush.party.model.AccountType
-import uk.bipush.party.model.Party
-import uk.bipush.party.model.response
+import uk.bipush.http.WebSocketEndpoint
+import uk.bipush.party.model.*
 import uk.bipush.party.queue.PartyQueue
 import uk.bipush.party.queue.response
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 
 @WebSocket
+@WebSocketEndpoint(uri = "/api/v1/partySocket")
 class PartyWebSocket {
 
     companion object {
@@ -41,11 +40,15 @@ class PartyWebSocket {
 
         val MAX_CHAT_MESSAGE_CACHE_SIZE = 50
 
-        private val connections: BiMap<Session, Account> = HashBiMap.create()
+        private val connections: BiMap<Session, PartyMember> = HashBiMap.create()
         private val chatCache: HashMap<Party, Queue<ChatMessage>> = HashMap()
 
+        private val callbackCache: Cache<PartyMember, Runnable> = CacheBuilder.newBuilder()
+                .expireAfterWrite(1, TimeUnit.MINUTES)
+                .build()
 
-        fun sendQueueUpdate(partyQueue: PartyQueue, accounts: Set<Account>) {
+
+        fun sendQueueUpdate(partyQueue: PartyQueue, accounts: Set<PartyMember>) {
             val json = mapper.writeValueAsString(partyQueue.response(false))
 
             val msg = mapper.writeValueAsString(WSMessage("QUEUE_UPDATE", json))
@@ -53,7 +56,7 @@ class PartyWebSocket {
             sendMessage(msg, accounts)
         }
 
-        fun sendPartyUpdate(party: Party, accounts: Set<Account>) {
+        fun sendPartyUpdate(party: Party, accounts: Set<PartyMember>) {
             val json = mapper.writeValueAsString(party.response(false))
 
             val msg = mapper.writeValueAsString(WSMessage("PARTY_UPDATE", json))
@@ -61,7 +64,16 @@ class PartyWebSocket {
             sendMessage(msg, accounts)
         }
 
-        fun sendChatMessage(chatMessage: ChatMessage, accounts: Set<Account>) {
+        fun sendCommand(command: Command, accounts: Set<PartyMember>) {
+            val json = mapper.writeValueAsString(command)
+            val msg = mapper.writeValueAsString(WSMessage("COMMAND", json))
+
+            println(msg)
+            println(accounts)
+            sendMessage(msg, accounts)
+        }
+
+        fun sendChatMessage(chatMessage: ChatMessage, accounts: Set<PartyMember>) {
             val json = mapper.writeValueAsString(chatMessage)
 
             val msg = mapper.writeValueAsString(WSMessage("CHAT_MSG", json))
@@ -69,7 +81,7 @@ class PartyWebSocket {
             sendMessage(msg, accounts)
         }
 
-        fun sendChatMessage(chatMessages: List<ChatMessage>, accounts: Set<Account>) {
+        fun sendChatMessage(chatMessages: List<ChatMessage>, accounts: Set<PartyMember>) {
             val json = mapper.writeValueAsString(chatMessages)
 
             val msg = mapper.writeValueAsString(WSMessage("CHAT_MSGS", json))
@@ -77,12 +89,11 @@ class PartyWebSocket {
             sendMessage(msg, accounts)
         }
 
-        fun sendMessage(message: String, accounts: Set<Account>) {
+        fun sendMessage(message: String, accounts: Set<PartyMember>) {
             val inversed = connections.inverse()
 
             accounts.forEach { account ->
                 val session = inversed.get(account)
-
                 sendMessage(message, session)
             }
         }
@@ -96,6 +107,10 @@ class PartyWebSocket {
             } catch (t: Throwable) {
                 logger.error("Error sending ws message", t)
             }
+        }
+
+        fun registerMemberCallback(member: PartyMember, runnable: Runnable) {
+            callbackCache.put(member, runnable)
         }
     }
 
@@ -138,7 +153,7 @@ class PartyWebSocket {
         user.remote.sendString(mapper.writeValueAsString(WSMessage("PONG", "")))
     }
 
-    private fun handleViewParty(user: Session, body: String, account: Account) {
+    private fun handleViewParty(user: Session, body: String, account: PartyMember) {
         val partyId = body.toLong()
 
         val party = Party.finder.byId(partyId)
@@ -149,12 +164,17 @@ class PartyWebSocket {
             if (messages != null) {
                 sendChatMessage(messages.toList(), setOf(account))
             }
+
+            val callback = callbackCache.getIfPresent(account)
+            if (callback != null) {
+                callback.run()
+            }
         } else {
             sendMessage(mapper.writeValueAsString(WSMessage("ERROR", "Unable to find party")), user)
         }
     }
 
-    private fun handleChat(user: Session, body: String, account: Account) {
+    private fun handleChat(user: Session, body: String, member: PartyMember) {
         val request: ChatRequest = mapper.readValue(body)
 
         val party = Party.finder.byId(request.partyId)
@@ -166,10 +186,10 @@ class PartyWebSocket {
             }
             chatCache.putIfAbsent(party, messages!!)
 
-            val message = ChatMessage(account.displayName ?: "Guest",
+            val message = ChatMessage(member.account?.displayName ?: "Guest",
                     request.message,
-                    party.owner == account,
-                    account.accountType == AccountType.STAFF,
+                    party.owner == member.account,
+                    member.account?.accountType == AccountType.STAFF,
                     false,
                     DateTime.now()
             )
@@ -185,18 +205,21 @@ class PartyWebSocket {
     private fun handleAuth(user: Session, body: String) {
         val request: AuthRequest = mapper.readValue(body)
 
-        val account = Account.finder.query().where()
-                .eq("id", request.userId)
+        val account = Account.finder.byId(request.userId)
+        val member = PartyMember.finder.query().where()
+                .eq("party.id", request.partyId ?: account?.activeParty?.id)
+                .eq("account.id", request.userId)
+                .eq("account.loginToken.token", request.loginToken)
                 .findUnique()
 
-        if (account?.loginToken != null && account.loginToken == request.loginToken) {
-            connections.forcePut(user, account)
+        if (member != null) {
+            connections.forcePut(user, member)
 
             sendMessage(mapper.writeValueAsString(WSMessage("AUTH", "true")), user)
         } else {
-            user.disconnect()
-
             sendMessage(mapper.writeValueAsString(WSMessage("AUTH", "false")), user)
+
+            user.disconnect()
         }
     }
 
@@ -208,4 +231,6 @@ data class ChatRequest(val message: String, val partyId: Long)
 
 data class WSMessage(val opcode: String?, val body: String?)
 
-data class AuthRequest(val userId: Int, val loginToken: String)
+data class AuthRequest(val userId: Long, val partyId: Long?, val loginToken: String)
+
+data class Command(val name: String, val params: Map<String, Any>)

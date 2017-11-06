@@ -3,11 +3,9 @@ package uk.bipush.party.handler
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import uk.bipush.party.endpoint.net.ChatMessage
+import uk.bipush.party.endpoint.net.Command
 import uk.bipush.party.endpoint.net.PartyWebSocket
-import uk.bipush.party.model.Account
-import uk.bipush.party.model.Party
-import uk.bipush.party.model.PartyQueueEntry
-import uk.bipush.party.model.PartyQueueEntryStatus
+import uk.bipush.party.model.*
 import uk.bipush.party.queue.PartyQueue
 import uk.bipush.party.util.PlayTarget
 import uk.bipush.party.util.Spotify
@@ -15,27 +13,55 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-class PartyHandler : Runnable {
-
-    private val logger = LoggerFactory.getLogger(javaClass)
-
-    private val executorService = Executors.newScheduledThreadPool(10)
-
-    private val newParties = CopyOnWriteArrayList<Long>()
-    private val activeParties = CopyOnWriteArrayList<Long>()
-
-    override fun run() {
-        val started = newParties.map { partyId ->
-            playNext(partyId)
-            partyId
+object YouTubePartyManager : PartyManager {
+    override fun register(party: Party) {
+        if (!managedParties.contains(party.id)) {
+            this.managedParties.add(party.id)
+            playNext(party.id)
         }
-
-        newParties.removeAll(started)
-        activeParties.addAllAbsent(started)
     }
 
+    private val executorService = Executors.newScheduledThreadPool(10)
+    private val logger = LoggerFactory.getLogger(javaClass)
+
+    private val managedParties = CopyOnWriteArrayList<Long>()
+
+    override fun onMemberAdded(member: PartyMember) {
+        val queue = PartyQueue.forParty(member.party!!, 0, 2)
+        val nowPlaying = queue.nowPlaying
+        if (nowPlaying != null) {
+            PartyWebSocket.registerMemberCallback(member, Runnable {
+                playSong(listOf(member), nowPlaying, ((System.currentTimeMillis() - nowPlaying.playedAt)) + 200)
+            })
+        }
+        PartyWebSocket.sendChatMessage(ChatMessage("", "${member.account?.displayName} just joined the party.", false, false, true, DateTime.now()), member.party!!.members)
+    }
+
+    override fun onMemberRemoved(member: PartyMember) {
+
+    }
+
+    override fun run() {
+        while (!Thread.currentThread().isInterrupted) {
+            val parties = Party.finder.query()
+                    .where()
+                    .eq("status", PartyStatus.ONLINE)
+                    .eq("type", PartyType.YOUTUBE)
+                    .findList()
+            parties.forEach {
+                if (it.nowPlaying == null || !managedParties.contains(it.id)) {
+                    managedParties.addIfAbsent(it.id)
+                    playNext(it.id)
+                }
+            }
+
+            Thread.sleep(30000)
+        }
+    }
+
+
     private fun playNext(partyId: Long) {
-        if (activeParties.contains(partyId) || newParties.contains(partyId)) {
+        if (managedParties.contains(partyId)) {
             val party = Party.finder.byId(partyId)
             if (party == null) {
                 executorService.schedule({ playNext(partyId) }, 5000L, TimeUnit.MILLISECONDS)
@@ -46,7 +72,7 @@ class PartyHandler : Runnable {
                     if (queue.nowPlaying == null) {
                         val next = queue.entries.iterator().next()
 
-                        val accounts = party.members.filter { account -> account.activeParty == party }
+                        val accounts = party.members.filter { account -> account.active }
                         playSong(accounts, next, 0)
 
                         val now = System.currentTimeMillis()
@@ -88,13 +114,12 @@ class PartyHandler : Runnable {
         }
     }
 
-    private fun playSong(accounts: List<Account>, entry: PartyQueueEntry, position: Long) {
+    private fun playSong(accounts: List<PartyMember>, entry: PartyQueueEntry, position: Long) {
         try {
-            val playTargets = accounts.map { PlayTarget(it.accessToken!!, it.selectedDevice) }
             val uri = entry.uri
-
             if (uri != null) {
-                Spotify.play(uri, playTargets, position)
+                val playCommand = Command("PLAY", mapOf("uri" to uri, "position" to position))
+                PartyWebSocket.sendCommand(playCommand, accounts.toHashSet())
             } else {
                 logger.warn("Queue entry [${entry.id}] has null uri")
             }
@@ -103,23 +128,4 @@ class PartyHandler : Runnable {
         }
     }
 
-    fun onPartyJoin(account: Account, party: Party) {
-        val queue = PartyQueue.forParty(party, 0, 2)
-
-        val nowPlaying = queue.nowPlaying
-        if (nowPlaying != null) {
-            playSong(listOf(account), nowPlaying, ((System.currentTimeMillis() - nowPlaying.playedAt)) + 200)
-        }
-
-        PartyWebSocket.sendChatMessage(ChatMessage("", "${account.displayName} just joined the party.", false, false, true, DateTime.now()), party.members)
-    }
-
-    fun addParty(partyId: Long) {
-        newParties.add(partyId)
-    }
-
-    fun removeParty(partyId: Long) {
-        activeParties.remove(partyId)
-        newParties.remove(partyId)
-    }
 }

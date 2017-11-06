@@ -2,41 +2,59 @@
 
 package uk.bipush.party
 
-import com.wrapper.spotify.Api
+import com.google.inject.AbstractModule
+import com.google.inject.Guice
+import com.google.inject.name.Names
+import io.ebean.EbeanServerFactory
+import io.ebean.config.ServerConfig
 import org.avaje.agentloader.AgentLoader
-import spark.Filter
-import spark.Route
-import spark.Spark
+import org.avaje.datasource.DataSourceConfig
+import uk.bipush.http.BasicWebModule
+import uk.bipush.http.RouterFactory
+import uk.bipush.http.auth.model.AuthenticableRepository
+import uk.bipush.http.builtin.filter.TenantContextFilter
 import uk.bipush.party.endpoint.*
 import uk.bipush.party.endpoint.net.PartyWebSocket
-import uk.bipush.party.handler.PartyHandler
-import uk.bipush.party.model.Account
-import uk.bipush.party.model.Party
-import uk.bipush.party.model.PartyStatus
-import uk.bipush.party.task.BotChannelUpdater
-import uk.bipush.party.task.OfflineDeviceUpdater
+import uk.bipush.party.handler.PartyManager
+import uk.bipush.party.task.SpotifyBot
 import uk.bipush.party.task.PartyUpdater
 import uk.bipush.party.task.TokenRefresher
-import uk.bipush.party.util.Spotify
+import uk.bipush.party.task.YouTubeBot
+import uk.bipush.party.util.AccountRepository
+import uk.bipush.party.util.ExpireableRunnable
+import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
  * @author rvbiljouw
  */
+private fun bootstrapEbean() {
+    val config = ServerConfig()
+    config.name = "default"
+    config.packages = Arrays.asList(
+            "uk.bipush.party.model"
+    )
+    config.isDefaultServer = true
+    config.isUpdateChangesOnly = true
 
-private val optionsHandler = Route { request, response ->
-    val accessControlRequestHeaders = request.headers("Access-Control-Request-Headers")
-    if (accessControlRequestHeaders != null) {
-        response.header("Access-Control-Allow-Headers", accessControlRequestHeaders)
+    val datasourceConfig = DataSourceConfig().apply {
+        this.driver = "com.mysql.jdbc.Driver"
+        this.url = System.getenv("AWSUMIO_JDBC_STRING")
+                .replace("--NODE_HOSTNAME--", System.getenv("NODE_HOSTNAME") ?: "")
+        this.username = System.getenv("AWSUMIO_JDBC_USERNAME")
+        this.password = System.getenv("AWSUMIO_JDBC_PASSWORD")
     }
+    config.dataSourceConfig = datasourceConfig
+    config.isDdlGenerate = false
+    config.isDdlRun = false
+    config.isDefaultServer = true
 
-    val accessControlRequestMethod = request.headers("Access-Control-Request-Method")
-    if (accessControlRequestMethod != null) {
-        response.header("Access-Control-Allow-Methods", accessControlRequestMethod)
+    try {
+        EbeanServerFactory.create(config)
+    } catch (t: Throwable) {
+        t.printStackTrace()
     }
-
-    "OK"
 }
 
 fun main(args: Array<String>) {
@@ -44,46 +62,37 @@ fun main(args: Array<String>) {
         System.err.println("Couldn't load Ebean Agent!")
     }
 
-    val partyHandler = PartyHandler()
-    Party.finder.query().where().eq("status", PartyStatus.ONLINE)
-            .findIds<Long>().forEach { partyHandler.addParty(it) }
+    bootstrapEbean()
 
-    val endpoints = arrayOf(LoginEndpoint(), AccountEndpoint(), DevicesEndpoint(),
-            MusicEndpoint(), PartyEndpoint(partyHandler), QueueEndpoint(), SlackEndpoint())
-    Spark.exception(Exception::class.java, { t, request, response ->
-        t.printStackTrace()
+    TenantContextFilter.USE_REFERRER = true
 
-        response.status(500)
+    val endpoints = arrayOf(
+            PartyWebSocket::class.java,
+            LoginEndpoint::class.java,
+            AccountEndpoint::class.java,
+            PartyEndpoint::class.java,
+            QueueEndpoint::class.java,
+            SlackEndpoint::class.java,
+            SpotifyEndpoint::class.java,
+            YouTubeEndpoint::class.java)
+    val injector = Guice.createInjector(object : AbstractModule() {
+        override fun configure() {
+            install(BasicWebModule())
+            bind(AuthenticableRepository::class.java).annotatedWith(Names.named("default")).toInstance(AccountRepository())
+        }
     })
 
-    Spark.port(8080)
+    val routerFactory = injector.getInstance(RouterFactory::class.java)
+    val router = routerFactory.create(endpoints, 8080)
 
-    Spark.webSocket("/api/v1/partySocket", PartyWebSocket::class.java)
-
-    Spark.init()
-
-    Spark.before(Filter { request, response ->
-        response.header("Access-Control-Allow-Origin", request.headers("Origin"));
-        response.header("Access-Control-Request-Method", "GET,PUT,POST,DELETE");
-        response.header("Access-Control-Allow-Headers",
-                "Content-Type,Authorization,X-Requested-With,Content-Length,Accept,Origin,X-Offset,X-Max-Records");
-        response.header("Access-Control-Expose-Headers",
-                "Content-Type,Authorization,X-Requested-With,Content-Length,Accept,Origin,X-Offset,X-Max-Records");
-        response.header("Access-Control-Allow-Credentials", "true");
-        // Note: this may or may not be necessary in your particular
-        // application
-        response.type("application/json");
-    })
-
-    Spark.options("/*", optionsHandler)
-
-    endpoints.forEach { it.init() }
+    router.init(true)
 
     val executorService = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors())
 
-    executorService.scheduleAtFixedRate(partyHandler, 0, 2, TimeUnit.SECONDS)
-    executorService.scheduleAtFixedRate(OfflineDeviceUpdater(), 0, 2, TimeUnit.SECONDS)
-    executorService.scheduleAtFixedRate(TokenRefresher(), 0, 5L, TimeUnit.MINUTES)
-    executorService.scheduleAtFixedRate(PartyUpdater(), 0, 1L, TimeUnit.MINUTES)
-    executorService.scheduleAtFixedRate(BotChannelUpdater(partyHandler), 0, 30L, TimeUnit.SECONDS)
+    executorService.scheduleAtFixedRate(ExpireableRunnable("TokenRefresher", TokenRefresher()), 0, 5L, TimeUnit.MINUTES)
+    executorService.scheduleAtFixedRate(ExpireableRunnable("PartyUpdater", PartyUpdater()), 0, 1L, TimeUnit.MINUTES)
+    executorService.scheduleAtFixedRate(ExpireableRunnable("SpotifyBot", SpotifyBot()), 0, 30L, TimeUnit.SECONDS)
+    executorService.scheduleAtFixedRate(ExpireableRunnable("YouTubeBot", YouTubeBot()), 0, 30L, TimeUnit.SECONDS)
+
+    PartyManager.managers.forEach { t, u -> Thread(u).start() }
 }

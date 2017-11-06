@@ -11,10 +11,9 @@ import com.google.common.cache.CacheBuilder
 import io.ebean.Expr
 import spark.Route
 import spark.Spark
-import uk.bipush.party.model.Account
-import uk.bipush.party.model.AccountLink
-import uk.bipush.party.model.LinkType
-import uk.bipush.party.model.response
+import spark.route.HttpMethod
+import uk.bipush.http.Endpoint
+import uk.bipush.party.model.*
 import uk.bipush.party.queue.PartyQueue
 import uk.bipush.party.slack.Slack
 import uk.bipush.party.slack.SlackActionHandlers
@@ -24,28 +23,25 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 
-class SlackEndpoint : Endpoint {
-    private val mapper = ObjectMapper()
-            .registerModule(KotlinModule())
-            .registerModule(JodaModule())
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+class SlackEndpoint {
 
-    private val slackAuthCache = CacheBuilder.newBuilder()
-            .expireAfterWrite(5L, TimeUnit.MINUTES)
-            .build<String, AccountLink>()
+    companion object {
+        private val mapper = ObjectMapper()
+                .registerModule(KotlinModule())
+                .registerModule(JodaModule())
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
-    override fun init() {
-        Spark.get("/slack/callback", slackCallback, JacksonResponseTransformer())
-
-        Spark.post("/api/v1/slack/command", slackCommnad, JacksonResponseTransformer())
-        Spark.post("/api/v1/slack/action", slackAction, JacksonResponseTransformer())
+        private val slackAuthCache = CacheBuilder.newBuilder()
+                .expireAfterWrite(5L, TimeUnit.MINUTES)
+                .build<String, AccountLink>()
     }
 
-    private val slackCallback = Route { req, res ->
+
+    @field:Endpoint(method = HttpMethod.get, uri = "/slack/callback")
+    val slackCallback = Route { req, res ->
         try {
-            val userId: Long = req.session().attribute("user_id")
-            val loginToken: String? = req.queryParams("loginToken")
-            val account = Account.find(userId, loginToken)
+            val token: LoginToken = req.attribute("account")
+            val account = token.account
 
             if (account != null) {
                 val state = req.queryParams("state")
@@ -66,7 +62,7 @@ class SlackEndpoint : Endpoint {
                         if (link == null) {
                             link = AccountLink().apply {
                                 this.externalId = externalId
-                                this.token = token
+                                this.token = token.token
                                 this.account = account
                                 this.linkType = LinkType.SLACK
                             }

@@ -15,6 +15,10 @@ enum class AccountType {
     BOT
 }
 
+enum class SubscriptionType {
+    FREE, PREMIUM
+}
+
 @Entity
 class Account : Model() {
 
@@ -24,8 +28,8 @@ class Account : Model() {
         fun find(userId: Long?, loginToken: String?): Account? {
             if (userId != null && userId > 0) {
                 val account = Account.finder.byId(userId)
-
-                account?.loginToken = UUID.randomUUID().toString()
+// TODO: wtf is this
+//                account?.loginToken = UUID.randomUUID().toString()
                 account?.update()
 
                 return account
@@ -40,19 +44,25 @@ class Account : Model() {
 
     @Id
     var id: Long = 0
-    var spotifyId: String? = null
-    var displayName: String? = null
-    @Index
-    var loginToken: String? = null
-    @Index
-    var accessToken: String? = null
-    var refreshToken: String? = null
-    @Index
-    var selectedDevice: String? = null
-    @ManyToOne
-    var activeParty: Party? = null
     @Enumerated(value = EnumType.STRING)
     var accountType: AccountType = AccountType.REGULAR
+    @ManyToOne
+    var subscription: Subscription? = null
+    @ManyToOne
+    var activeParty: Party? = null
+    @ManyToMany
+    var achievements: List<Achievement>? = null
+    @Index
+    var email: String? = null
+    var password: String? = null
+    var displayPicture: String? = null
+    var displayName: String? = null
+
+    @ManyToOne
+    var spotify: SpotifyAccount? = null
+
+    @ManyToOne
+    var loginToken: LoginToken? = null
     @CreatedTimestamp
     var created: Timestamp? = null
     @UpdatedTimestamp
@@ -76,37 +86,40 @@ class Account : Model() {
 
 class AccountResponse {
     var id: Long = 0
-    var spotifyId: String? = null
-    var displayName: String? = null
-    var loginToken: String? = null
-    var accessToken: String? = null
-    var refreshToken: String? = null
-    var selectedDevice: String? = null
+    var accountType: AccountType? = null
+    var subscription: Subscription? = null
     var activeParty: PartyResponse? = null
+    var achievements: List<Achievement>? = null
+    var email: String? = null
+    var displayName: String? = null
+    var displayPicture: String? = null
+    var loginToken: LoginTokenResponse? = null
+    var hasSpotify: Boolean = false
     var created: Timestamp? = null
     var updated: Timestamp? = null
 }
 
-fun Account.response(withTokens: Boolean = false, withChildren: Boolean = false, withLoginToken: Boolean = false): AccountResponse {
+fun Account.response(withChildren: Boolean = false, withLoginToken: Boolean = false): AccountResponse {
     val self = this
     return AccountResponse().apply {
         this.id = self.id
-        this.spotifyId = self.spotifyId
+        this.accountType = self.accountType
+        this.subscription = self.subscription
+        this.email = self.email
         this.displayName = self.displayName
-        this.selectedDevice = self.selectedDevice
+        this.displayPicture = self.displayPicture
         this.created = self.created
         this.updated = self.updated
 
+        this.hasSpotify = self.spotify != null
+
         if (withLoginToken) {
-            this.loginToken = self.loginToken
+            this.loginToken = self.loginToken?.response()
         }
 
-        if (withTokens) {
-            this.accessToken = self.accessToken
-            this.refreshToken = self.refreshToken
-        }
         if (withChildren) {
             this.activeParty = self.activeParty?.response(false, false)
+            this.achievements = self.achievements
         }
     }
 }

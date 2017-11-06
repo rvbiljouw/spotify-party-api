@@ -11,6 +11,7 @@ import javax.persistence.*
 enum class LinkType {
     SLACK;
 }
+
 @Entity
 class AccountLink : Model() {
 
@@ -66,7 +67,7 @@ fun AccountLink.response(withTokens: Boolean = false): AccountLinkResponse {
         this.id = self.id
         this.externalId = self.externalId
         this.token = self.token
-        this.account = self.account?.response(withTokens, false, false)
+        this.account = self.account?.response(false, withTokens)
         this.linkType = self.linkType
         this.created = self.created
         this.updated = self.updated
