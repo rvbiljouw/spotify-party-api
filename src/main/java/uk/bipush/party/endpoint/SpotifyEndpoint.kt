@@ -148,11 +148,10 @@ class SpotifyEndpoint {
 
                     account.save()
 
-                    println(account.loginToken?.token)
                     req.session(true).attribute("token", account.loginToken?.token)
 
                     if (state?.isNotBlank() == true) {
-                        res.redirect("$state?loginToken=${account.loginToken}")
+                        res.redirect("$state?loginToken=${account.loginToken?.token}")
                     } else {
                         res.redirect(Spotify.FRONTEND_HOST)
                     }
