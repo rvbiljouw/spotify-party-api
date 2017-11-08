@@ -68,8 +68,6 @@ class PartyWebSocket {
             val json = mapper.writeValueAsString(command)
             val msg = mapper.writeValueAsString(WSMessage("COMMAND", json))
 
-            println(msg)
-            println(accounts)
             sendMessage(msg, accounts)
         }
 
@@ -208,6 +206,7 @@ class PartyWebSocket {
         val account = Account.finder.byId(request.userId)
         val member = PartyMember.finder.query().where()
                 .eq("account.id", request.userId)
+                .eq("party.id", request.partyId)
                 .eq("account.loginToken.token", request.loginToken)
                 .findUnique()
 
