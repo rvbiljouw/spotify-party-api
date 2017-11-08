@@ -7,7 +7,6 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import uk.bipush.party.endpoint.*
 import uk.bipush.party.model.Account
 import uk.bipush.party.queue.PartyQueue
-import uk.bipush.party.util.Spotify
 import uk.bipush.party.util.SpotifyFilter
 import java.util.concurrent.TimeUnit
 
@@ -19,7 +18,7 @@ object SlackCommandHandlers {
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
     fun handleListQueue(account: Account): SlackActionResponse {
-        val party = account.activeParty
+        val party = account.spotify?.activeParty
         if (party != null) {
             val queue = PartyQueue.forParty(party, 0, 10)
             if (queue.entries.isNotEmpty()) {
@@ -44,7 +43,7 @@ object SlackCommandHandlers {
     }
 
     fun handleListNowPlaying(account: Account, slackCommandRequest: SlackCommandRequest): SlackActionResponse {
-        val party = account.activeParty
+        val party = account.spotify?.activeParty
         if (party != null) {
             val queue = PartyQueue.forParty(party, 0, 1)
             val nowPlaying = queue.nowPlaying
@@ -75,13 +74,13 @@ object SlackCommandHandlers {
     }
 
     fun handleListVote(account: Account, slackCommandRequest: SlackCommandRequest, upVote: Boolean): SlackActionResponse {
-        val party = account.activeParty
+        val party = account.spotify?.activeParty
         if (party != null) {
             val queue = PartyQueue.forParty(party, 0, 10)
             if (queue.entries.isNotEmpty()) {
                 val attachment = SlackAttachment(
                         text = "Click a song to ${if (upVote) "upvote" else "downvote"} it in your current party " +
-                                "(${account.activeParty?.name})",
+                                "(${account.spotify?.activeParty?.name})",
                         fallback = "Unable to downvote song",
                         callbackId = if (upVote) "song_upvote" else "song_downvote",
                         color = "#3AA3E3",
@@ -111,7 +110,7 @@ object SlackCommandHandlers {
 //        if (text == null || text.isBlank()) {
 //            return SlackActionResponse("ephemeral", false, "Please enter something to search for")
 //        } else {
-//            if (account.activeParty != null) {
+//            if (account.activeSpotifyParty != null) {
 //                val split = text.split(";")
 //                val song = makeFilter("TRACK", split[0])
 //                val album = if (split.size > 1) makeFilter("ALBUM", split[1]) else null
@@ -124,7 +123,7 @@ object SlackCommandHandlers {
 //                    return SlackActionResponse("ephemeral", false, "Unable to find any songs")
 //                } else {
 //                    val attachment = SlackAttachment(
-//                            text = "Click a song to queue it to your current party (${account.activeParty?.name})",
+//                            text = "Click a song to queue it to your current party (${account.activeSpotifyParty?.name})",
 //                            fallback = "Unable to queue song",
 //                            callbackId = "song_select",
 //                            color = "#3AA3E3",

@@ -1,5 +1,6 @@
 package uk.bipush.party.endpoint
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.joda.JodaModule
@@ -15,6 +16,7 @@ import spark.Spark
 import spark.route.HttpMethod
 import uk.bipush.http.Endpoint
 import uk.bipush.http.auth.Auth
+import uk.bipush.http.response.ErrorResponse
 import uk.bipush.http.response.Errors
 import uk.bipush.http.response.error
 import uk.bipush.http.response.response
@@ -83,9 +85,46 @@ class AccountEndpoint {
         }
     }
 
+    @field:Auth
+    @field:Endpoint(method = HttpMethod.put, uri = "/api/v1/account")
+    val updateAccount = Route { req, res ->
+        val token: LoginToken = req.attribute("account")
+
+        val updateRequest: UpdateAccountRequest = mapper.readValue(req.body())
+
+        val errors = updateRequest.validate()
+        if (errors.isEmpty()) {
+                val accountWithEmail = Account.finder.query().where().eq(
+                        "email", updateRequest.email ?: token.account?.email).findUnique()
+
+            if (accountWithEmail != null && accountWithEmail.id != token.account?.id) {
+                res.error(Errors.conflict, ErrorResponse("That email is alaready in use"))
+            } else {
+                val account = token.account!!
+
+                account.email = updateRequest.email ?: account.email
+                account.displayName = updateRequest.displayName ?: account.displayName
+                account.password = if (updateRequest.newPassword?.isNotBlank() == true)
+                    BCrypt.hashpw(updateRequest.newPassword, BCrypt.gensalt())
+                else
+                    account.password
+
+                account.update()
+
+                account.response(false, true)
+            }
+        } else {
+            res.error(Errors.badRequest, errors.map { it.response() })
+        }
+    }
 
 }
 
 data class CreateAccountRequest(@field:NotEmpty @field:Email val email: String?,
                                 @field:NotEmpty @field:Length(min = 8) val password: String?,
                                 @field:NotEmpty val displayName: String?) : ValidatedRequest()
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class UpdateAccountRequest(val email: String?,
+                                val newPassword: String?,
+                                val displayName: String?) : ValidatedRequest()

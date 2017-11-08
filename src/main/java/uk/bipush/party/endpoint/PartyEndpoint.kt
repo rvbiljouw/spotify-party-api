@@ -59,7 +59,7 @@ class PartyEndpoint @Inject constructor() {
                     res.status(404)
                 }
             } else {
-                account.activeParty?.response()
+                account.spotify?.activeParty?.response()
             }
         } else {
             res.status(403)
@@ -149,7 +149,7 @@ class PartyEndpoint @Inject constructor() {
         if (token.account != null) {
             val parties = Party.finder.query().where().eq("members.account.id", token.account?.id).findList()
 
-            MyPartiesResponse(token.account?.activeParty?.response(false, false),
+            MyPartiesResponse(token.account?.spotify?.activeParty?.response(false, false),
                     parties.map { p -> p.response(false, false) }.toSet())
         } else {
             res.status(403)
@@ -169,36 +169,56 @@ class PartyEndpoint @Inject constructor() {
         if (account != null) {
             val party = Party.finder.byId(partyId)
             if (party != null) {
-                if (account.activeParty != null && account.activeParty == party && !reconnect) {
+                if (account.spotify?.activeParty != null && account.spotify?.activeParty == party && !reconnect) {
                     party.response(false)
                 } else {
                     try {
-                        var partyMember = PartyMember.finder.query().where()
-                                .eq("party.id", partyId)
-                                .eq("account.id", account.id)
-                                .findUnique()
-                        if (partyMember == null) {
-                            partyMember = PartyMember().apply {
-                                this.rank = PartyMemberRank.VISITOR
-                                this.party = party
-                                this.account = account
-                                this.active = true
+                        val member = DBUtils.transactional({
+
+                            PartyMember.finder.query().where()
+                                    .eq("account.id", account.id)
+                                    .eq("active", true)
+                                    .not(Expr.eq("party.id", partyId))
+                                    .eq("party.type", PartyType.SPOTIFY)
+                                    .findList().forEach {
+                                it.active = false
+
+                                it.update()
                             }
 
-                            DBUtils.transactional({
+                            var partyMember = PartyMember.finder.query().where()
+                                    .eq("party.id", partyId)
+                                    .eq("account.id", account.id)
+                                    .findUnique()
+                            if (partyMember == null) {
+                                partyMember = PartyMember().apply {
+                                    this.rank = PartyMemberRank.VISITOR
+                                    this.party = party
+                                    this.account = account
+                                    this.active = true
+                                }
+
                                 partyMember!!.save()
                                 party.members.add(partyMember!!)
                                 party.update()
-                            })
-                        }
+                            } else if (!partyMember.active) {
+                                partyMember.active = true
+                                partyMember.update()
+                            }
 
-                        DBUtils.transactional({
-                            account.activeParty = party
-                            account.update()
+                            if (party.type == PartyType.SPOTIFY) {
+                                account.spotify?.activeParty = party
+                                account.spotify?.update()
+                            } else if (account.spotify != null && account.spotify?.activeParty != null) {
+                                account.spotify?.activeParty = null
+                                account.spotify?.update()
+                            }
+
+                            partyMember
                         })
 
                         PartyWebSocket.sendPartyUpdate(party, party.members)
-                        PartyManager.managers[party.type]?.onMemberAdded(partyMember)
+                        PartyManager.managers[party.type]?.onMemberAdded(member!!)
 
                         party.response(false)
                     } catch (t: Throwable) {
@@ -240,9 +260,9 @@ class PartyEndpoint @Inject constructor() {
                         membership.delete()
                     }
 
-                    if (account.activeParty == membership.party) {
-                        account.activeParty = null
-                        account.update()
+                    if (account.spotify?.activeParty == membership.party) {
+                        account.spotify?.activeParty = null
+                        account.spotify?.update()
                     }
                 })
 
@@ -286,8 +306,10 @@ class PartyEndpoint @Inject constructor() {
                 party.save()
                 partyMember.save()
 
-                account.activeParty = party
-                account.update()
+                if (party.type == PartyType.SPOTIFY) {
+                    account.spotify?.activeParty = party
+                    account.spotify?.update()
+                }
             })
 
             PartyManager.managers[party.type]?.register(party)
@@ -296,38 +318,6 @@ class PartyEndpoint @Inject constructor() {
         } else {
             res.status(403)
             mapOf("error" to "You're not logged in.")
-        }
-    }
-
-    @field:Auth
-    @field:Endpoint(method = HttpMethod.put, uri = "/api/v1/parties/activate")
-    val changeActiveParty = Route { req, res ->
-        val partyId: Long? = req.queryParams("partyId").toLong()
-
-        val token: LoginToken = req.attribute("account")
-        val account = token.account
-
-        if (account != null) {
-            val partyMember = PartyMember.finder.query()
-                    .where()
-                    .eq("account.id", account.id)
-                    .eq("party.id", partyId)
-                    .findUnique()
-            if (partyMember != null) {
-                account.activeParty = partyMember.party
-                account.save()
-
-                PartyWebSocket.sendPartyUpdate(partyMember.party!!, partyMember.party!!.members)
-
-                PartyManager.managers[partyMember.party!!.type]?.onMemberAdded(partyMember)
-
-
-                partyMember.party!!.response(false, false)
-            } else {
-                res.status(404)
-            }
-        } else {
-            res.status(403)
         }
     }
 
@@ -419,9 +409,9 @@ class PartyEndpoint @Inject constructor() {
                 member?.delete()
 
 
-                if (member?.account?.activeParty == party) {
-                    member.account?.activeParty = null
-                    member.update()
+                if (member?.account?.spotify?.activeParty == party) {
+                    member.account?.spotify?.activeParty = null
+                    member.account?.spotify?.update()
                 }
             })
 
@@ -440,6 +430,6 @@ class PartyEndpoint @Inject constructor() {
 
 data class CreatePartyRequest(val type: PartyType, val access: PartyAccess, val name: String, val description: String)
 
-data class MyPartiesResponse(val activeParty: PartyResponse?, val parties: Set<PartyResponse>?)
+data class MyPartiesResponse(val activeSpotifyParty: PartyResponse?, val parties: Set<PartyResponse>?)
 
 data class UpdatePartyRequest(val name: String?, val description: String?, val access: PartyAccess?)

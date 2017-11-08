@@ -28,7 +28,7 @@ object SlackActionHandlers {
         val account = Account.finder.byId(accountId)
         val entry = PartyQueueEntry.finder.byId(entryId)
 
-        val party = account?.activeParty
+        val party = account?.spotify?.activeParty
         if (party != null && entry != null) {
             if (entry.status == PartyQueueEntryStatus.IN_QUEUE) {
                 if (PartyQueue.voteSong(account, party, entry, upVote) != null) {
@@ -53,7 +53,7 @@ object SlackActionHandlers {
 
         val account = Account.finder.byId(accountId)
         val songSelect: SongSelect = mapper.readValue(action.value!!)
-        val party = account?.activeParty
+        val party = account?.spotify?.activeParty
         if (party != null && songSelect.uri != null) {
             val entry = PartyQueue.queueSong(account, party, songSelect.title ?: "-", songSelect.artist ?: "-",
                     songSelect.duration ?: -0, songSelect.thumbnail ?: "", songSelect.uri!!)

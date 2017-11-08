@@ -207,7 +207,6 @@ class PartyWebSocket {
 
         val account = Account.finder.byId(request.userId)
         val member = PartyMember.finder.query().where()
-                .eq("party.id", request.partyId ?: account?.activeParty?.id)
                 .eq("account.id", request.userId)
                 .eq("account.loginToken.token", request.loginToken)
                 .findUnique()

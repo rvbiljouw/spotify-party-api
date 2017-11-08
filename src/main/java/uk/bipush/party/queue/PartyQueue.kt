@@ -52,7 +52,7 @@ class PartyQueue {
             entry.save()
 
             PartyWebSocket.sendQueueUpdate(PartyQueue.forParty(party), party.members)
-            PartyWebSocket.sendChatMessage(ChatMessage("", "${account.displayName} queued up ${artist} - ${title}", false, false, true, DateTime.now()), party.members)
+            PartyWebSocket.sendChatMessage(ChatMessage("Awsum", "${account.displayName} queued up ${artist} - ${title}", false, false, true, DateTime.now()), party.members)
 
 
             return entry

@@ -114,7 +114,16 @@ object SpotifyPartyManager : PartyManager {
     private fun playSong(accounts: List<PartyMember>, entry: PartyQueueEntry, position: Long) {
         try {
             // TODO
-            val playTargets = accounts.map { PlayTarget(it.account!!.spotify!!.accessToken!!, null) }
+            val playTargets = accounts.map {
+                val device = if (it.account!!.spotify!!.device?.isNotBlank() == true)
+                    it.account!!.spotify!!.device
+                else
+                    null
+
+                PlayTarget(it.account!!.id, it.account!!.spotify!!.accessToken!!,
+                    device)
+            }
+
             val uri = entry.uri
 
             if (uri != null) {

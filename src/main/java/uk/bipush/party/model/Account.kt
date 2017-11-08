@@ -6,7 +6,6 @@ import io.ebean.annotation.CreatedTimestamp
 import io.ebean.annotation.Index
 import io.ebean.annotation.UpdatedTimestamp
 import java.sql.Timestamp
-import java.util.*
 import javax.persistence.*
 
 enum class AccountType {
@@ -48,8 +47,6 @@ class Account : Model() {
     var accountType: AccountType = AccountType.REGULAR
     @ManyToOne
     var subscription: Subscription? = null
-    @ManyToOne
-    var activeParty: Party? = null
     @ManyToMany
     var achievements: List<Achievement>? = null
     @Index
@@ -88,13 +85,13 @@ class AccountResponse {
     var id: Long = 0
     var accountType: AccountType? = null
     var subscription: Subscription? = null
-    var activeParty: PartyResponse? = null
     var achievements: List<Achievement>? = null
     var email: String? = null
     var displayName: String? = null
     var displayPicture: String? = null
     var loginToken: LoginTokenResponse? = null
     var hasSpotify: Boolean = false
+    var spotify: SpotifyAccountResponse? = null
     var created: Timestamp? = null
     var updated: Timestamp? = null
 }
@@ -112,13 +109,13 @@ fun Account.response(withChildren: Boolean = false, withLoginToken: Boolean = fa
         this.updated = self.updated
 
         this.hasSpotify = self.spotify != null
+        this.spotify = self.spotify?.response(false, false)
 
         if (withLoginToken) {
             this.loginToken = self.loginToken?.response()
         }
 
         if (withChildren) {
-            this.activeParty = self.activeParty?.response(false, false)
             this.achievements = self.achievements
         }
     }

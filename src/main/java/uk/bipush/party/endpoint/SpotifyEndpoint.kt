@@ -1,5 +1,6 @@
 package uk.bipush.party.endpoint
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.joda.JodaModule
@@ -9,15 +10,22 @@ import com.google.common.cache.CacheBuilder
 import com.wrapper.spotify.Api
 import com.wrapper.spotify.models.AuthorizationCodeCredentials
 import io.ebean.Expr
+import org.mindrot.jbcrypt.BCrypt
 import spark.Route
 import spark.route.HttpMethod
 import uk.bipush.http.Endpoint
 import uk.bipush.http.auth.Auth
+import uk.bipush.http.response.ErrorResponse
+import uk.bipush.http.response.Errors
+import uk.bipush.http.response.error
+import uk.bipush.http.response.response
+import uk.bipush.http.util.ValidatedRequest
+import uk.bipush.http.util.validate
+import uk.bipush.party.endpoint.net.PartyWebSocket
 import uk.bipush.party.endpoint.response.fromSpotify
-import uk.bipush.party.model.Account
-import uk.bipush.party.model.LoginToken
-import uk.bipush.party.model.LoginTokenStatus
-import uk.bipush.party.model.SpotifyAccount
+import uk.bipush.party.endpoint.response.response
+import uk.bipush.party.handler.PartyManager
+import uk.bipush.party.model.*
 import uk.bipush.party.util.Spotify
 import uk.bipush.party.util.SpotifyFilter
 import java.util.*
@@ -89,17 +97,21 @@ class SpotifyEndpoint {
                         }
                         account.save()
 
+                        val devices = Spotify.getDevices(credentials.accessToken)
+                        val deviceId = if (devices != null && devices.devices.isNotEmpty())
+                            (devices.devices.find { it.isActive } ?: devices.devices[0]).id
+                        else
+                            null
+
                         val spotifyAcc = SpotifyAccount().apply {
                             this.account = account
                             this.accessToken = credentials?.accessToken
                             this.refreshToken = credentials?.refreshToken
                             this.displayName = spotifyUser.displayName
                             this.spotifyId = spotifyUser.id
+                            this.device = deviceId
                         }
                         spotifyAcc.save()
-
-                        println(spotifyAcc.id)
-                        println(account.id)
 
                         account.spotify = spotifyAcc
                         account.save()
@@ -152,6 +164,59 @@ class SpotifyEndpoint {
 
             res.status(500)
             mapOf("error" to "An error occurred - $exId")
+        }
+    }
+
+    @field:Auth
+    @field:Endpoint(method = HttpMethod.get, uri = "/api/v1/spotify/devices")
+    private val getDevices = Route { req, res ->
+        val token: LoginToken = req.attribute("account")
+
+        if (token.account?.spotify?.accessToken == null) {
+            res.error(Errors.notFound, ErrorResponse("You haven't linked a spotify account"))
+        } else {
+            val devices = Spotify.getDevices(token.account?.spotify?.accessToken!!)
+
+            devices?.devices?.map {
+                it.response()
+            }
+        }
+    }
+
+    @field:Auth
+    @field:Endpoint(method = HttpMethod.put, uri = "/api/v1/spotify/account")
+    val updateAccount = Route { req, res ->
+        val token: LoginToken = req.attribute("account")
+
+        val updateRequest: UpdateSpotifyAccountRequest = mapper.readValue(req.body())
+
+        val errors = updateRequest.validate()
+        if (errors.isEmpty()) {
+            if (token.account?.spotify == null) {
+                res.error(Errors.notFound, ErrorResponse("You haven't linked a spotify account"))
+            } else {
+                val spotifyAccount = token.account!!.spotify!!
+
+                val changedDevice = updateRequest.device?.isNotBlank() == true && updateRequest.device != spotifyAccount.device
+                if (changedDevice) {
+                    spotifyAccount.device = updateRequest.device
+                }
+
+                spotifyAccount.update()
+
+                if (changedDevice && spotifyAccount.activeParty != null) {
+                    val partyMember = PartyMember.finder.query().where()
+                            .eq("party.id", spotifyAccount.activeParty!!.id)
+                            .eq("account.id", token.account!!.id)
+                            .findUnique()
+
+                    PartyManager.managers[spotifyAccount.activeParty!!.type]?.onMemberAdded(partyMember!!)
+                }
+
+                spotifyAccount.response(false, false)
+            }
+        } else {
+            res.error(Errors.badRequest, errors.map { it.response() })
         }
     }
 
@@ -239,3 +304,6 @@ class SpotifyEndpoint {
     }
 
 }
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class UpdateSpotifyAccountRequest(val device: String?) : ValidatedRequest()

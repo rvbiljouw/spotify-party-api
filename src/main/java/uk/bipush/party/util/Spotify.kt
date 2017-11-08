@@ -13,6 +13,10 @@ import okhttp3.MediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import org.eclipse.jetty.http.HttpStatus
+import org.slf4j.LoggerFactory
+import uk.bipush.party.rmq.InvalidDevicePublisher
+import uk.bipush.party.rmq.NonPremiumSpotifyPublisher
 import java.util.*
 
 
@@ -23,6 +27,8 @@ object Spotify {
     val FRONTEND_HOST = System.getenv("FRONTEND_HOST") ?: "http://localhost:4200"
 
     val mapper = ObjectMapper().registerModule(KotlinModule())
+
+    val logger = LoggerFactory.getLogger(Spotify::class.java)
 
     val timer = Timer()
     val api: Api
@@ -49,13 +55,11 @@ object Spotify {
             val deviceId = it.device
             val token = it.token
             Thread {
-                println("sending play! ${deviceId} ${token}")
-
-
                 var successful: Boolean = false
                 var cycleCount = 0
                 while (!successful) {
-                    val url = "https://api.spotify.com/v1/me/player/play" + if (deviceId != null) "&device_id=$deviceId" else ""
+                    val url = "https://api.spotify.com/v1/me/player/play" + if (deviceId != null) "?device_id=$deviceId" else ""
+
                     val request = Request.Builder()
                             .url(url)
                             .addHeader("Authorization", "Bearer $token")
@@ -63,26 +67,37 @@ object Spotify {
                             .build()
                     val client = OkHttpClient()
                     val response = client.newCall(request).execute()
-                    if (response.isSuccessful) {
-                        if (response.code() == 202 && successful) {
-//                        return play(track, token, deviceId, offset, false)
-                            println("Retry required for ${it}")
-                            response.close()
-                            successful = !retry
-                        } else {
-                            response.close()
 
+                    when(response.code()) {
+                        HttpStatus.NO_CONTENT_204 -> {
                             if (position > 0) {
                                 seek(position, it, true)
                             }
                             successful = true
                         }
-                    } else {
-                        response.close()
-                        println(response)
-                        println("Request failed for ${it}")
-                        successful = !retry
+                        HttpStatus.ACCEPTED_202 -> {
+                            logger.info("Retry required for $it [$response]")
+                            successful = !retry
+                        }
+                        HttpStatus.NOT_FOUND_404 -> {
+                            if (it.device != null) {
+                                InvalidDevicePublisher.publishInvalidDevice(it.accountId, it.device)
+                            }
+                            logger.warn("Request failed for $it [$response]")
+                            successful = true
+                        }
+                        HttpStatus.FORBIDDEN_403 -> {
+                            NonPremiumSpotifyPublisher.publishNonPremium(it.accountId)
+                            logger.warn("Request failed for $it [$response]")
+                            successful = true
+                        }
+                        else -> {
+                            logger.warn("Unandled response [$response]")
+                            successful = true
+                        }
                     }
+                    response.close()
+
                     cycleCount++
 
                     if (cycleCount > 5) {
@@ -110,14 +125,12 @@ object Spotify {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
                 if (response.code() == 202 && retry) {
-//                        return play(track, token, deviceId, offset, false)
-                    println("Retry required")
+                    logger.info("Retry required")
                 }
                 response.close()
             } else {
-                println(response)
+                logger.warn("Request failed [$response]")
                 response.close()
-                println("Request failed")
             }
         }.start()
     }
@@ -195,7 +208,7 @@ object Spotify {
     }
 }
 
-data class PlayTarget(val token: String, val device: String?)
+data class PlayTarget(val accountId: Long, val token: String, val device: String?)
 
 data class SpotifyDevice(val id: String,
                          @field:JsonProperty("is_active") val isActive: Boolean,

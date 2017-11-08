@@ -33,7 +33,7 @@ class QueueEndpoint {
         val limit = req.queryParams("limit")?.toInt() ?: 25
         val offset = req.queryParams("offset")?.toInt() ?: 0
 
-        val party = if (partyId != "active") Party.finder.byId(partyId.toLong()) else account.activeParty
+        val party = if (partyId != "active") Party.finder.byId(partyId.toLong()) else account.spotify?.activeParty
         if (party != null) {
             PartyQueue.forParty(party, offset, limit).response(false)
         } else {
@@ -52,7 +52,7 @@ class QueueEndpoint {
         val loginToken: LoginToken = req.attribute("account")
         val account = loginToken.account!!
 
-        val party = if (partyId != "active") Party.finder.byId(partyId.toLong()) else account.activeParty
+        val party = if (partyId != "active") Party.finder.byId(partyId.toLong()) else account.spotify?.activeParty
         if (party != null) {
             val entries = PartyQueueEntry.finder.query()
                     .where()
@@ -82,7 +82,7 @@ class QueueEndpoint {
         val account = token.account!!
 
 
-        val party = if (partyId != "active") Party.finder.byId(partyId.toLong()) else account.activeParty
+        val party = if (partyId != "active") Party.finder.byId(partyId.toLong()) else account.spotify?.activeParty
         if (party != null) {
             val request: QueueSongRequest = mapper.readValue(req.body())
 
@@ -104,7 +104,7 @@ class QueueEndpoint {
         val token: LoginToken = req.attribute("account")
         val account = token.account!!
 
-        val party = if (partyId != "active") Party.finder.byId(partyId.toLong()) else account.activeParty
+        val party = if (partyId != "active") Party.finder.byId(partyId.toLong()) else account.spotify?.activeParty
         if (party != null) {
             val request: VoteSongRequest = mapper.readValue(req.body())
             var entry = PartyQueueEntry.finder.byId(request.id)
