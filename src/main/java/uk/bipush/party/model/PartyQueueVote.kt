@@ -23,6 +23,7 @@ class PartyQueueVote : Model() {
     @ManyToOne
     var entry: PartyQueueEntry? = null
     var upvote: Boolean? = false
+    var voteToSkip: Boolean? = false
     @CreatedTimestamp
     var created: DateTime? = null
     @UpdatedTimestamp

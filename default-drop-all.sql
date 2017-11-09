@@ -72,4 +72,5 @@ drop table if exists spotify_account;
 drop table if exists subscription;
 
 drop index if exists ix_account_email;
+drop index if exists ix_party_member_active;
 drop index if exists ix_spotify_account_spotify_id;

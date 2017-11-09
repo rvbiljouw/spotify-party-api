@@ -68,6 +68,8 @@ class PartyWebSocket {
             val json = mapper.writeValueAsString(command)
             val msg = mapper.writeValueAsString(WSMessage("COMMAND", json))
 
+            println(msg)
+            println(accounts)
             sendMessage(msg, accounts)
         }
 
@@ -133,13 +135,12 @@ class PartyWebSocket {
 
         if (wsRequest.opcode == "AUTH") {
             handleAuth(user, wsRequest.body)
-        } else if (wsRequest.opcode == "PING") {
-            handlePing(user, wsRequest.body)
         } else {
             if (account == null) {
                 sendMessage(mapper.writeValueAsString(WSMessage("ERROR", "Forbidden")), user)
             } else {
                 when (wsRequest.opcode) {
+                    "PING" -> handlePing(user, wsRequest.body, account)
                     "CHAT" -> handleChat(user, wsRequest.body, account)
                     "VIEW_PARTY" -> handleViewParty(user, wsRequest.body, account)
                 }
@@ -147,11 +148,23 @@ class PartyWebSocket {
         }
     }
 
-    private fun handlePing(user: Session, body: String) {
+    private fun handlePing(user: Session, body: String, member: PartyMember) {
+        if (!member.active) {
+            member.active = true
+            if (member.party != null) {
+                member.party!!.activeMemberCount++
+                member.party!!.update()
+
+                PartyWebSocket.sendPartyUpdate(member.party!!, member.party!!.members)
+            }
+        }
+
+        member.update() //Update timestamp
+        
         user.remote.sendString(mapper.writeValueAsString(WSMessage("PONG", "")))
     }
 
-    private fun handleViewParty(user: Session, body: String, account: PartyMember) {
+    private fun handleViewParty(user: Session, body: String, member: PartyMember) {
         val partyId = body.toLong()
 
         val party = Party.finder.byId(partyId)
@@ -160,10 +173,10 @@ class PartyWebSocket {
             val messages = chatCache[party]
 
             if (messages != null) {
-                sendChatMessage(messages.toList(), setOf(account))
+                sendChatMessage(messages.toList(), setOf(member))
             }
 
-            val callback = callbackCache.getIfPresent(account)
+            val callback = callbackCache.getIfPresent(member)
             if (callback != null) {
                 callback.run()
             }

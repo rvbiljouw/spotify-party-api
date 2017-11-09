@@ -3,6 +3,7 @@ package uk.bipush.party.model
 import io.ebean.Finder
 import io.ebean.Model
 import io.ebean.annotation.CreatedTimestamp
+import io.ebean.annotation.Index
 import io.ebean.annotation.UpdatedTimestamp
 import org.joda.time.DateTime
 import javax.persistence.*
@@ -27,6 +28,7 @@ class PartyMember : Model() {
     @ManyToOne
     var account: Account? = null
     var lastSeen: DateTime? = null
+    @Index
     var active: Boolean = true
     @CreatedTimestamp
     var created: DateTime? = null

@@ -135,8 +135,8 @@ class SlackEndpoint {
                 } else {
                     when (actions.callbackId) {
                         "song_select" -> SlackActionHandlers.handleSongSelect(action)
-                        "song_upvote" -> SlackActionHandlers.handleSongVote(action, true)
-                        "song_downvote" -> SlackActionHandlers.handleSongVote(action, false)
+                        "song_upvote" -> SlackActionHandlers.handleSongVote(action, true, false)
+                        "song_downvote" -> SlackActionHandlers.handleSongVote(action, false, false)
                         else -> {
                             res.status(404)
                             SlackActionResponse("ephemeral", false, "I don't know how to handle this :(")

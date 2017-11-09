@@ -110,6 +110,65 @@ object Spotify {
         }.forEach { it.start() }
     }
 
+    fun pause(playTargets: List<PlayTarget>, retry: Boolean = true) {
+        val reqBody = RequestBody.create(MediaType.parse("application/json"), "")
+
+        playTargets.map {
+            val deviceId = it.device
+            val token = it.token
+            Thread {
+                var successful: Boolean = false
+                var cycleCount = 0
+                while (!successful) {
+                    val url = "https://api.spotify.com/v1/me/player/pause" + if (deviceId != null) "?device_id=$deviceId" else ""
+
+                    val request = Request.Builder()
+                            .url(url)
+                            .addHeader("Authorization", "Bearer $token")
+                            .put(reqBody)
+                            .build()
+                    val client = OkHttpClient()
+                    val response = client.newCall(request).execute()
+
+                    when(response.code()) {
+                        HttpStatus.NO_CONTENT_204 -> {
+                            successful = true
+                        }
+                        HttpStatus.ACCEPTED_202 -> {
+                            logger.info("Retry required for $it [$response]")
+                            successful = !retry
+                        }
+                        HttpStatus.NOT_FOUND_404 -> {
+                            if (it.device != null) {
+                                InvalidDevicePublisher.publishInvalidDevice(it.accountId, it.device)
+                            }
+                            logger.warn("Request failed for $it [$response]")
+                            successful = true
+                        }
+                        HttpStatus.FORBIDDEN_403 -> {
+                            NonPremiumSpotifyPublisher.publishNonPremium(it.accountId)
+                            logger.warn("Request failed for $it [$response]")
+                            successful = true
+                        }
+                        else -> {
+                            logger.warn("Unandled response [$response]")
+                            successful = true
+                        }
+                    }
+                    response.close()
+
+                    cycleCount++
+
+                    if (cycleCount > 5) {
+                        return@Thread
+                    }
+
+                    Thread.sleep(200)
+                }
+            }
+        }.forEach { it.start() }
+    }
+
     fun seek(position: Long, target: PlayTarget, retry: Boolean = true) {
         val requestR = mapOf("position_ms" to position, "device_id" to target.device)
         val reqBody = RequestBody.create(MediaType.parse("application/json"), mapper.writeValueAsString(requestR))

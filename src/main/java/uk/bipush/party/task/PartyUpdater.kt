@@ -1,26 +1,41 @@
 package uk.bipush.party.task
 
+import org.joda.time.DateTime
+import uk.bipush.party.endpoint.net.PartyWebSocket
 import uk.bipush.party.model.Party
+import uk.bipush.party.model.PartyMember
 
 class PartyUpdater : Runnable {
 
-    override fun run() {
-        val tokens = Party.finder.query()
-                .setFirstRow(0)
-                .setMaxRows(25)
-                .findPagedList()
-        tokens.loadCount()
+    val query = PartyMember.finder.query()
+            .where()
+            .eq("active", true)
+            .lt("updated", DateTime.now().minusMinutes(1))
+            .setFirstRow(0)
+            .setMaxRows(25)
 
-        val count = tokens.totalCount
+    override fun run() {
+        val members = query.findPagedList()
+        members.loadCount()
+
+        val count = members.totalCount
         var offset = 0
         while (offset < count) {
-            val results = Party.finder.query()
+            val results = query
                     .setFirstRow(offset)
                     .setMaxRows(25)
                     .findPagedList()
-            results.list.forEach({ acc ->
-                acc.activeMemberCount = acc.members.size
-                acc.update()
+
+            results.list.forEach({ member ->
+                member.active = false
+                member.update()
+
+                if (member.party != null) {
+                    member.party!!.activeMemberCount--
+                    member.party!!.update()
+
+                    PartyWebSocket.sendPartyUpdate(member.party!!, member.party!!.members)
+                }
             })
             offset += results.list.size
         }

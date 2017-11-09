@@ -110,17 +110,25 @@ class QueueEndpoint {
             var entry = PartyQueueEntry.finder.byId(request.id)
 
             if (entry != null) {
-                if (entry.status != PartyQueueEntryStatus.IN_QUEUE) {
-                    res.status(400)
-                    mapOf("error" to "Unable to find song in the queue.")
-                } else {
-                    entry = PartyQueue.voteSong(account, party, entry, request.up)
+                if (entry.status == PartyQueueEntryStatus.IN_QUEUE) {
+                    entry = PartyQueue.voteSong(account, party, entry, request.up, request.voteToSkip)
                     if (entry != null) {
-                        entry.response(false)
+                        entry.response(false, true)
                     } else {
                         res.status(409)
                         mapOf("error" to "Sorry, you've already voted on this queue entry.")
                     }
+                } else if (entry.status == PartyQueueEntryStatus.PLAYING) {
+                    entry = PartyQueue.voteSong(account, party, entry, request.up, request.voteToSkip)
+                    if (entry != null) {
+                        entry.response(false, true)
+                    } else {
+                        res.status(409)
+                        mapOf("error" to "Sorry, you've already voted to skip this song.")
+                    }
+                } else {
+                    res.status(400)
+                    mapOf("error" to "Unable to find song in the queue.")
                 }
             } else {
                 res.status(404)
@@ -136,4 +144,4 @@ class QueueEndpoint {
 
 data class QueueSongRequest(val artist: String, val title: String, val thumbnail: String, val uri: String, val duration: Int)
 
-data class VoteSongRequest(val id: Long, val up: Boolean)
+data class VoteSongRequest(val id: Long, val up: Boolean, val voteToSkip: Boolean)

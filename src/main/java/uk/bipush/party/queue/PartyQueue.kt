@@ -3,6 +3,8 @@ package uk.bipush.party.queue
 import org.joda.time.DateTime
 import uk.bipush.party.endpoint.net.ChatMessage
 import uk.bipush.party.endpoint.net.PartyWebSocket
+import uk.bipush.party.handler.PartyManager
+import uk.bipush.party.handler.SpotifyPartyManager
 import uk.bipush.party.model.*
 
 class PartyQueue {
@@ -26,11 +28,6 @@ class PartyQueue {
                     .findUnique()
 
             return PartyQueue().apply {
-                val list = PartyQueueEntry.finder.query()
-                        .where()
-                        .eq("party.id", party.id)
-                        .findList()
-
                 this.nowPlaying = nowPlaying
                 this.entries = entries.toSet()
                 this.party = party
@@ -58,7 +55,7 @@ class PartyQueue {
             return entry
         }
 
-        fun voteSong(account: Account, party: Party, entry: PartyQueueEntry, upVote: Boolean): PartyQueueEntry? {
+        fun voteSong(account: Account, party: Party, entry: PartyQueueEntry, upVote: Boolean, voteToSkip: Boolean): PartyQueueEntry? {
             var vote = PartyQueueVote.finder.query().where()
                     .eq("account.id", account.id)
                     .eq("entry.id", entry.id)
@@ -68,6 +65,7 @@ class PartyQueue {
                     this.account = account
                     this.entry = entry
                     this.upvote = upVote
+                    this.voteToSkip = voteToSkip
                 }
                 vote.save()
 
@@ -76,8 +74,21 @@ class PartyQueue {
                 } else {
                     entry.downvotes++
                 }
+                if (voteToSkip) {
+                    entry.votesToSkip++
+                }
                 entry.votes = entry.upvotes - entry.downvotes
-                entry.save()
+
+                if (entry.votesToSkip >= Math.ceil(party.activeMemberCount.toDouble() / 2.0)) {
+                    entry.status = PartyQueueEntryStatus.SKIPPED
+
+                    party.update()
+                    entry.update()
+
+                    PartyManager.managers[entry.party!!.type]?.playNext(entry.party!!.id)
+                } else {
+                    entry.update()
+                }
 
                 PartyWebSocket.sendQueueUpdate(PartyQueue.forParty(party), party.members)
 

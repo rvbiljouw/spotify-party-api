@@ -209,7 +209,7 @@ class SpotifyEndpoint {
                             .eq("account.id", token.account!!.id)
                             .findUnique()
 
-                    PartyManager.managers[spotifyAccount.activeParty!!.type]?.onMemberAdded(partyMember!!)
+                    PartyManager.managers[spotifyAccount.activeParty!!.type]?.onMemberAdded(partyMember!!, false)
                 }
 
                 spotifyAccount.response(false, false)

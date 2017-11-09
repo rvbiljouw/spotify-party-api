@@ -25,13 +25,16 @@ object SpotifyPartyManager : PartyManager {
         }
     }
 
-    override fun onMemberAdded(member: PartyMember) {
+    override fun onMemberAdded(member: PartyMember, isNewMember: Boolean) {
         val queue = PartyQueue.forParty(member.party!!, 0, 2)
         val nowPlaying = queue.nowPlaying
         if (nowPlaying != null) {
             playSong(listOf(member), nowPlaying, ((System.currentTimeMillis() - nowPlaying.playedAt)) + 200)
         }
-        PartyWebSocket.sendChatMessage(ChatMessage("", "${member.account?.displayName} just joined the party.", false, false, true, DateTime.now()), member.party!!.members)
+        if (isNewMember) {
+            PartyWebSocket.sendChatMessage(ChatMessage("", "${member.account?.displayName} just joined the party.",
+                    false, false, true, DateTime.now()), member.party!!.members)
+        }
     }
 
     override fun onMemberRemoved(member: PartyMember) {
@@ -57,7 +60,7 @@ object SpotifyPartyManager : PartyManager {
     }
 
 
-    private fun playNext(partyId: Long) {
+    override fun playNext(partyId: Long) {
         if (managedParties.contains(partyId)) {
             val party = Party.finder.byId(partyId)
             if (party == null) {
@@ -66,7 +69,7 @@ object SpotifyPartyManager : PartyManager {
                 val queue = PartyQueue.forParty(party, 0, 2)
 
                 if (!queue.entries.isEmpty() || queue.nowPlaying != null) {
-                    if (queue.nowPlaying == null) {
+                    if (queue.nowPlaying == null || queue.nowPlaying?.status == PartyQueueEntryStatus.SKIPPED) {
                         val next = queue.entries.iterator().next()
 
                         val accounts = party.members.filter { account -> account.active }

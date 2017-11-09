@@ -21,6 +21,8 @@ import uk.bipush.party.handler.PartyManager
 import uk.bipush.party.model.*
 import uk.bipush.party.util.DBUtils
 import uk.bipush.party.util.Filter
+import uk.bipush.party.util.PlayTarget
+import uk.bipush.party.util.Spotify
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
@@ -173,6 +175,7 @@ class PartyEndpoint @Inject constructor() {
                     party.response(false)
                 } else {
                     try {
+                        var isNewMember = false
                         val member = DBUtils.transactional({
 
                             PartyMember.finder.query().where()
@@ -197,20 +200,28 @@ class PartyEndpoint @Inject constructor() {
                                     this.account = account
                                     this.active = true
                                 }
+                                isNewMember = true
 
-                                partyMember!!.save()
-                                party.members.add(partyMember!!)
+                                partyMember.save()
+
+                                party.members.add(partyMember)
+                                party.activeMemberCount++
                                 party.update()
                             } else if (!partyMember.active) {
                                 partyMember.active = true
                                 partyMember.update()
+
+                                party.activeMemberCount++
+                                party.update()
                             }
 
                             if (party.type == PartyType.SPOTIFY) {
                                 account.spotify?.activeParty = party
+                                Spotify.pause(listOf(PlayTarget(account.id, account.spotify!!.accessToken!!, account.spotify?.device)))
                                 account.spotify?.update()
                             } else if (account.spotify != null && account.spotify?.activeParty != null) {
                                 account.spotify?.activeParty = null
+                                Spotify.pause(listOf(PlayTarget(account.id, account.spotify!!.accessToken!!, account.spotify?.device)))
                                 account.spotify?.update()
                             }
 
@@ -218,7 +229,7 @@ class PartyEndpoint @Inject constructor() {
                         })
 
                         PartyWebSocket.sendPartyUpdate(party, party.members)
-                        PartyManager.managers[party.type]?.onMemberAdded(member!!)
+                        PartyManager.managers[party.type]?.onMemberAdded(member!!, isNewMember)
 
                         party.response(false)
                     } catch (t: Throwable) {
@@ -262,6 +273,8 @@ class PartyEndpoint @Inject constructor() {
 
                     if (account.spotify?.activeParty == membership.party) {
                         account.spotify?.activeParty = null
+
+                        Spotify.pause(listOf(PlayTarget(account.id, account.spotify!!.accessToken!!, account.spotify?.device)))
                         account.spotify?.update()
                     }
                 })
@@ -305,6 +318,10 @@ class PartyEndpoint @Inject constructor() {
             DBUtils.transactional({
                 party.save()
                 partyMember.save()
+
+                party.activeMemberCount = 1
+                party.members.add(partyMember)
+                party.update()
 
                 if (party.type == PartyType.SPOTIFY) {
                     account.spotify?.activeParty = party

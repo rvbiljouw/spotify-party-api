@@ -6,7 +6,7 @@ import uk.bipush.party.model.PartyType
 
 interface PartyManager : Runnable {
 
-    fun onMemberAdded(member: PartyMember)
+    fun onMemberAdded(member: PartyMember, isNewMember: Boolean)
 
     fun onMemberRemoved(member: PartyMember)
 
@@ -18,4 +18,6 @@ interface PartyManager : Runnable {
     }
 
     fun register(party: Party)
+
+    fun playNext(partyId: Long)
 }

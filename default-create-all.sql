@@ -104,10 +104,11 @@ create table party_queue_entry (
   votes                         integer not null,
   upvotes                       integer not null,
   downvotes                     integer not null,
+  votes_to_skip                 integer not null,
   status                        varchar(9),
   created                       timestamp not null,
   updated                       timestamp not null,
-  constraint ck_party_queue_entry_status check ( status in ('PLAYED','PLAYING','IN_QUEUE','CANCELLED')),
+  constraint ck_party_queue_entry_status check ( status in ('PLAYED','PLAYING','IN_QUEUE','CANCELLED','SKIPPED')),
   constraint pk_party_queue_entry primary key (id)
 );
 
@@ -116,6 +117,7 @@ create table party_queue_vote (
   account_id                    bigint,
   entry_id                      bigint,
   upvote                        boolean,
+  vote_to_skip                  boolean,
   created                       timestamp not null,
   updated                       timestamp not null,
   constraint pk_party_queue_vote primary key (id)
@@ -146,6 +148,7 @@ create table subscription (
 );
 
 create index ix_account_email on account (email);
+create index ix_party_member_active on party_member (active);
 create index ix_spotify_account_spotify_id on spotify_account (spotify_id);
 alter table account add constraint fk_account_subscription_id foreign key (subscription_id) references subscription (id) on delete restrict on update restrict;
 create index ix_account_subscription_id on account (subscription_id);

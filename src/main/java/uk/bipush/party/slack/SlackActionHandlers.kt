@@ -21,7 +21,7 @@ object SlackActionHandlers {
             .registerModule(JodaModule())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
-    fun handleSongVote(action: SlackAction, upVote: Boolean): SlackActionResponse {
+    fun handleSongVote(action: SlackAction, upVote: Boolean, voteToSkip: Boolean): SlackActionResponse {
         val accountId = action.name?.toLong()
         val entryId = action.value?.toLong()
 
@@ -31,9 +31,17 @@ object SlackActionHandlers {
         val party = account?.spotify?.activeParty
         if (party != null && entry != null) {
             if (entry.status == PartyQueueEntryStatus.IN_QUEUE) {
-                if (PartyQueue.voteSong(account, party, entry, upVote) != null) {
+                if (PartyQueue.voteSong(account, party, entry, upVote, voteToSkip) != null) {
+
+                    val message = if (voteToSkip) {
+                        "voted to skip"
+                    } else {
+                        if (upVote) "upvoted"
+                        else "downvoted"
+                    }
+
                     return SlackActionResponse("in_channel", false,
-                            "${account.displayName} - ${if (upVote) "upvoted" else "downvoted"}" +
+                            "${account.displayName} - ${message}" +
                                     " ${entry.title} - ${entry.artist ?: ""} in the ${party.name} party")
                 }
 

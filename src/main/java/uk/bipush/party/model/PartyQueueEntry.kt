@@ -9,7 +9,7 @@ import javax.persistence.*
 import javax.persistence.EnumType.*
 
 enum class PartyQueueEntryStatus {
-    PLAYED, PLAYING, IN_QUEUE, CANCELLED
+    PLAYED, PLAYING, IN_QUEUE, CANCELLED, SKIPPED
 }
 
 @Entity
@@ -34,6 +34,7 @@ class PartyQueueEntry : Model() {
     var votes: Int = 0
     var upvotes: Int = 0
     var downvotes: Int = 0
+    var votesToSkip: Int = 0
     @Enumerated(value = STRING)
     var status: PartyQueueEntryStatus = PartyQueueEntryStatus.IN_QUEUE
     @CreatedTimestamp
@@ -74,6 +75,7 @@ class PartyQueueEntryResponse {
     var votes: Int = 0
     var upvotes: Int = 0
     var downvotes: Int = 0
+    var votesToSkip: Int = 0
     var playedAt: Long = 0
     var duration: Int = 0
     var status: PartyQueueEntryStatus? = null
@@ -96,6 +98,7 @@ fun PartyQueueEntry.response(withTokens: Boolean = false, withParty: Boolean = t
         this.votes = self.votes
         this.upvotes = self.upvotes
         this.downvotes = self.downvotes
+        this.votesToSkip = self.votesToSkip
         this.playedAt = self.playedAt
         this.duration = self.duration
         this.status = self.status
