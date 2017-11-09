@@ -12,6 +12,7 @@ import com.google.cloud.storage.StorageOptions
 import com.google.common.hash.Hashing
 import com.google.common.io.Files
 import io.ebean.Expr
+import spark.Request
 import spark.Route
 import spark.route.HttpMethod
 import uk.bipush.http.Endpoint
@@ -69,14 +70,21 @@ class PartyEndpoint @Inject constructor() {
     }
 
     @field:Endpoint(method = HttpMethod.get, uri = "/api/v1/parties")
-    val getPublic = Route { req, res ->
+    val getParties = Route { req, res ->
+        val token: LoginToken? = getLoginToken(req)
         val filters: List<Filter>? = req.attribute("filters")
         val limit = req.queryParams("limit")?.toInt()
         val offset = req.queryParams("offset")?.toInt()
         val sort = req.queryParamOrDefault("sort", "").toString()
         val order = req.queryParamOrDefault("order", "").toString()
 
-        var query = DBUtils.applyFilters(Party.finder.query().where(Expr.eq("access", PartyAccess.PUBLIC)), filters)
+        val accessExpr = if (token?.account != null) {
+            Expr.or(Expr.eq("access", PartyAccess.PUBLIC), Expr.eq("members.account.id", token.account?.id))
+        } else {
+            Expr.eq("access", PartyAccess.PUBLIC)
+        }
+
+        var query = DBUtils.applyFilters(Party.finder.query().where(accessExpr), filters)
                 .setFirstRow(offset ?: 0)
                 .setMaxRows(limit ?: 25)
 
@@ -96,51 +104,11 @@ class PartyEndpoint @Inject constructor() {
         results.list.map { x -> x.response(true) }
     }
 
-    @field:Endpoint(method = HttpMethod.get, uri = "/api/v1/parties/popular")
-    val getMostPopular = Route { req, res ->
-        val limit = req.queryParams("limit")?.toInt()
-        val offset = req.queryParams("offset")?.toInt()
-        val type: String = req.queryParams("type") ?: "SPOTIFY"
-        val query = Party.finder.query().where()
-                .eq("access", PartyAccess.PUBLIC)
-                .eq("type", PartyType.valueOf(type))
-                .orderBy("activeMemberCount desc")
-                .setFirstRow(offset ?: 0)
-                .setMaxRows(limit ?: 25)
-
-        val results = query.findPagedList()
-        results.loadCount()
-
-        res.header("X-Max-Records", results.totalCount.toString())
-        res.header("X-Offset", (offset ?: 0).toString())
-        results.list.map { x -> x.response(true) }
-    }
-
-    @field:Endpoint(method = HttpMethod.get, uri = "/api/v1/parties/new")
-    val getNew = Route { req, res ->
-        val limit = req.queryParams("limit")?.toInt()
-        val offset = req.queryParams("offset")?.toInt()
-        val type: String = req.queryParams("type") ?: "SPOTIFY"
-        val query = Party.finder.query().where()
-                .eq("access", PartyAccess.PUBLIC)
-                .eq("type", PartyType.valueOf(type))
-                .orderBy("created desc")
-                .setFirstRow(offset ?: 0)
-                .setMaxRows(limit ?: 25)
-
-        val results = query.findPagedList()
-        results.loadCount()
-
-        res.header("X-Max-Records", results.totalCount.toString())
-        res.header("X-Offset", (offset ?: 0).toString())
-        results.list.map { x -> x.response(true) }
-    }
-
     @field:Endpoint(method = HttpMethod.post, uri = "/api/v1/parties")
     val search = Route { req, res ->
         val filters: List<Filter> = mapper.readValue(req.body())
         req.attribute("filters", filters)
-        getPublic.handle(req, res)
+        getParties.handle(req, res)
     }
 
     @field:Auth
@@ -149,7 +117,8 @@ class PartyEndpoint @Inject constructor() {
         val token: LoginToken = req.attribute("account")
 
         if (token.account != null) {
-            val parties = Party.finder.query().where().eq("members.account.id", token.account?.id).findList()
+            val parties = Party.finder.query().where().eq("members.account.id", token.account?.id)
+                    .setMaxRows(5).findList()
 
             MyPartiesResponse(token.account?.spotify?.activeParty?.response(false, false),
                     parties.map { p -> p.response(false, false) }.toSet())
@@ -215,7 +184,7 @@ class PartyEndpoint @Inject constructor() {
                                 party.update()
                             }
 
-                            if (party.type == PartyType.SPOTIFY) {
+                            if (party.type == PartyType.SPOTIFY && account.spotify != null) {
                                 account.spotify?.activeParty = party
                                 Spotify.pause(listOf(PlayTarget(account.id, account.spotify!!.accessToken!!, account.spotify?.device)))
                                 account.spotify?.update()
@@ -234,7 +203,7 @@ class PartyEndpoint @Inject constructor() {
                         party.response(false)
                     } catch (t: Throwable) {
                         t.printStackTrace()
-                        party.response(false)
+                        party.response(false, false)
                     }
                 }
             } else {
@@ -442,6 +411,10 @@ class PartyEndpoint @Inject constructor() {
 
     private fun getBlobFileName(hash: String, fileName: String): String {
         return "$hash-${System.currentTimeMillis()}-$fileName"
+    }
+
+    private fun getLoginToken(req: Request): LoginToken? {
+        return if (req.attributes().contains("account")) req.attribute("account") else null
     }
 }
 

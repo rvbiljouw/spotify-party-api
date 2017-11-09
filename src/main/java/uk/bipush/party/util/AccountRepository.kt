@@ -21,7 +21,6 @@ class AccountRepository : AuthenticableRepository {
 
     override fun lookup(token: String, roles: Array<String>, status: Array<String>): Any? {
         try {
-            println(token)
             return LoginToken.finder.query()
                     .where()
                     .eq("token", token)

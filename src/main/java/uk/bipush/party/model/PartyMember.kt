@@ -35,13 +35,30 @@ class PartyMember : Model() {
     @UpdatedTimestamp
     var updated: DateTime? = null
 }
+class PartyMemberResponse() {
+    var id: Long? = 0
+    var rank: PartyMemberRank? = null
+    var account: AccountResponse? = null
+    var lastSeen: DateTime? = null
+    var active: Boolean = false
+    var created: DateTime? = null
+    var updated: DateTime? = null
+}
 
-class PartyMemberResponse(p: PartyMember) {
-    val id: Long? = p.id
-    val rank: PartyMemberRank? = p.rank
-    val account: AccountResponse? = p.account?.response()
-    val lastSeen: DateTime? = p.lastSeen
-    val active: Boolean = p.active
-    val created: DateTime? = p.created
-    val updated: DateTime? = p.updated
+fun PartyMember.response(withChildren: Boolean = false): PartyMemberResponse {
+    val self = this
+
+    return PartyMemberResponse().apply {
+        this.id = self.id
+        this.rank = self.rank
+
+        if (withChildren) {
+            this.account = self.account?.response(false, false)
+        }
+
+        this.lastSeen = self.lastSeen
+        this.active = self.active
+        this.created = self.created
+        this.updated = self.updated
+    }
 }

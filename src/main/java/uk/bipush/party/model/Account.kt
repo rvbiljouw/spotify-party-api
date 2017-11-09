@@ -54,10 +54,9 @@ class Account : Model() {
     var password: String? = null
     var displayPicture: String? = null
     var displayName: String? = null
-
-    @ManyToOne
+    var hasSpotify: Boolean = false
+    @OneToOne
     var spotify: SpotifyAccount? = null
-
     @ManyToOne
     var loginToken: LoginToken? = null
     @CreatedTimestamp
@@ -108,7 +107,7 @@ fun Account.response(withChildren: Boolean = false, withLoginToken: Boolean = fa
         this.created = self.created
         this.updated = self.updated
 
-        this.hasSpotify = self.spotify != null
+        this.hasSpotify = self.hasSpotify
         this.spotify = self.spotify?.response(false, false)
 
         if (withLoginToken) {

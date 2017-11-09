@@ -87,8 +87,8 @@ fun Party.response(withTokens: Boolean = false, withChildren: Boolean = true): P
     return PartyResponse().apply {
         this.id = self.id
         if (withChildren) {
-            this.owner = self.owner?.response(withTokens, false)
-            this.members = self.members.map { m -> PartyMemberResponse(m) }.toMutableSet()
+            this.owner = self.owner?.response(false, false)
+            this.members = self.members.map { m -> m.response(true) }.toMutableSet()
         }
 
         this.type = self.type

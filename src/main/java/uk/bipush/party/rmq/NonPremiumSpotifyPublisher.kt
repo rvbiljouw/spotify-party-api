@@ -28,8 +28,16 @@ object NonPremiumSpotifyPublisher {
                     membership.active = false
                     membership.update()
 
+                    if (membership.party != null) {
+                        membership.party!!.activeMemberCount--
+                        membership.party!!.save()
+                    }
+
                     spotifyAccount.activeParty = null
                     spotifyAccount.update()
+
+                    spotifyAccount.account?.hasSpotify = false
+                    spotifyAccount.account?.update()
                 })
 
                 PartyWebSocket.sendPartyUpdate(membership.party!!, membership.party!!.members)

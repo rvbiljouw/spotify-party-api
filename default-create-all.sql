@@ -6,11 +6,13 @@ create table account (
   password                      varchar(255),
   display_picture               varchar(255),
   display_name                  varchar(255),
+  has_spotify                   boolean default false not null,
   spotify_id                    bigint,
   login_token_id                bigint,
   created                       timestamp not null,
   updated                       timestamp not null,
   constraint ck_account_account_type check ( account_type in ('REGULAR','STAFF','BOT')),
+  constraint uq_account_spotify_id unique (spotify_id),
   constraint pk_account primary key (id)
 );
 
@@ -154,7 +156,6 @@ alter table account add constraint fk_account_subscription_id foreign key (subsc
 create index ix_account_subscription_id on account (subscription_id);
 
 alter table account add constraint fk_account_spotify_id foreign key (spotify_id) references spotify_account (id) on delete restrict on update restrict;
-create index ix_account_spotify_id on account (spotify_id);
 
 alter table account add constraint fk_account_login_token_id foreign key (login_token_id) references login_token (id) on delete restrict on update restrict;
 create index ix_account_login_token_id on account (login_token_id);

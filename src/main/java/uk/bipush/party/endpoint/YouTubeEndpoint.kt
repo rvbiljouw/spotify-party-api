@@ -73,7 +73,6 @@ class YouTubeEndpoint {
         val search = youtube.search().list("id,snippet")
         if (offset > 0) {
             search.pageToken = pageTokenCache.getIfPresent("${req.body()}_page_${offset / limit}")
-            println("used existng page token")
         }
         search.key = YouTubeBot.API_KEY
         search.q = filters.joinToString(" ") { f -> f.value!! }

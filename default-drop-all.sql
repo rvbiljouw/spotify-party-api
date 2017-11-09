@@ -2,7 +2,6 @@ alter table account drop constraint if exists fk_account_subscription_id;
 drop index if exists ix_account_subscription_id;
 
 alter table account drop constraint if exists fk_account_spotify_id;
-drop index if exists ix_account_spotify_id;
 
 alter table account drop constraint if exists fk_account_login_token_id;
 drop index if exists ix_account_login_token_id;

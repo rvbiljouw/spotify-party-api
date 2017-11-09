@@ -17,11 +17,11 @@ class SpotifyAccount : Model() {
 
     @Id
     var id: Long? = 0
-    @Index
+    @Column(unique = true)
     var spotifyId: String? = ""
     @ManyToOne
     var activeParty: Party? = null
-    @ManyToOne
+    @OneToOne
     var account: Account? = null
     var displayName: String? = ""
     var accessToken: String? = null

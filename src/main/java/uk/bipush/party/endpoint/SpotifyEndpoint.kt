@@ -11,6 +11,7 @@ import com.wrapper.spotify.Api
 import com.wrapper.spotify.models.AuthorizationCodeCredentials
 import io.ebean.Expr
 import org.mindrot.jbcrypt.BCrypt
+import spark.Request
 import spark.Route
 import spark.route.HttpMethod
 import uk.bipush.http.Endpoint
@@ -28,6 +29,8 @@ import uk.bipush.party.handler.PartyManager
 import uk.bipush.party.model.*
 import uk.bipush.party.util.Spotify
 import uk.bipush.party.util.SpotifyFilter
+import java.net.URLDecoder
+import java.net.URLEncoder
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -50,9 +53,9 @@ class SpotifyEndpoint {
 
     @field:Endpoint(method = HttpMethod.get, uri = "/api/v1/spotify/login")
     private val login = Route { req, res ->
-        val redirectUrl = req.queryParams("redirectUrl")
+        val redirectUrl = req.queryParams("redirectUrl") ?: ""
         val scopes = listOf<String>("user-modify-playback-state", "user-read-playback-state")
-        val authorizeURL = api.createAuthorizeURL(scopes, redirectUrl)
+        val authorizeURL = api.createAuthorizeURL(scopes, URLEncoder.encode(redirectUrl, "UTF-8"))
 
         res.redirect(authorizeURL)
     }
@@ -60,8 +63,16 @@ class SpotifyEndpoint {
     @field:Endpoint(method = HttpMethod.get, uri = "/callback")
     private val callback = Route { req, res ->
         try {
-            val state = req.queryParams("state")
+            val stateRaw = URLDecoder.decode(req.queryParams("state"), "UTF-8")
             val code = req.queryParams("code")
+
+            val stateSplit = stateRaw.split("~")
+            val state = stateSplit[0]
+            val existingAccount = if (stateSplit.size > 1) {
+                 getLoginToken(stateSplit[1])
+            } else {
+                null
+            }
 
             var credentials = authCache.getIfPresent(code)
             if (credentials == null) {
@@ -86,74 +97,79 @@ class SpotifyEndpoint {
                 }
                 else -> {
                     var account = Account.finder.query().where(Expr.eq("spotify.spotifyId", spotifyUser.id)).findOne()
-                    if (account == null) {
-                        // We're creating a new account using the Spotify account as a base
-                        account = Account().apply {
-                            this.displayName = if (spotifyUser.displayName?.isNotBlank() == true)
-                                spotifyUser.displayName
-                            else
-                                spotifyUser.id
-                            this.email = spotifyUser.email
-                        }
-                        account.save()
 
-                        val devices = Spotify.getDevices(credentials.accessToken)
-                        val deviceId = if (devices != null && devices.devices.isNotEmpty())
-                            (devices.devices.find { it.isActive } ?: devices.devices[0]).id
-                        else
-                            null
-
-                        val spotifyAcc = SpotifyAccount().apply {
-                            this.account = account
-                            this.accessToken = credentials?.accessToken
-                            this.refreshToken = credentials?.refreshToken
-                            this.displayName = spotifyUser.displayName
-                            this.spotifyId = spotifyUser.id
-                            this.device = deviceId
-                        }
-                        spotifyAcc.save()
-
-                        account.spotify = spotifyAcc
-                        account.save()
-
-
+                    if (existingAccount != null && account?.id != existingAccount?.id) {
+                        res.redirect("${Spotify.FRONTEND_HOST}/#/account?error=spotify_already_linked")
                     } else {
-                        if (account.spotify != null) {
-                            account.spotify?.accessToken = credentials.accessToken
-                            account.spotify?.refreshToken = credentials.refreshToken
-                        } else {
+                        if (account == null) {
+                            // We're creating a new account using the Spotify account as a base
+                            account = Account().apply {
+                                this.displayName = if (spotifyUser.displayName?.isNotBlank() == true)
+                                    spotifyUser.displayName
+                                else
+                                    spotifyUser.id
+                                this.email = spotifyUser.email
+                            }
+                            account.save()
+
+                            val devices = Spotify.getDevices(credentials.accessToken)
+                            val deviceId = if (devices != null && devices.devices.isNotEmpty())
+                                (devices.devices.find { it.isActive } ?: devices.devices[0]).id
+                            else
+                                null
+
                             val spotifyAcc = SpotifyAccount().apply {
                                 this.account = account
                                 this.accessToken = credentials?.accessToken
                                 this.refreshToken = credentials?.refreshToken
                                 this.displayName = spotifyUser.displayName
                                 this.spotifyId = spotifyUser.id
+                                this.device = deviceId
                             }
                             spotifyAcc.save()
 
                             account.spotify = spotifyAcc
+                            account.update()
+
+                        } else {
+                            if (account.spotify != null) {
+                                account.spotify?.accessToken = credentials.accessToken
+                                account.spotify?.refreshToken = credentials.refreshToken
+                            } else {
+                                val spotifyAcc = SpotifyAccount().apply {
+                                    this.account = account
+                                    this.accessToken = credentials?.accessToken
+                                    this.refreshToken = credentials?.refreshToken
+                                    this.displayName = spotifyUser.displayName
+                                    this.spotifyId = spotifyUser.id
+                                }
+                                spotifyAcc.save()
+
+                                account.spotify = spotifyAcc
+                            }
                         }
-                    }
 
-                    if (account.loginToken == null) {
-                        account.loginToken = LoginToken().apply {
-                            this.account = account
-                            this.userAgent = req.userAgent()
-                            this.ipAddress = req.ip()
-                            this.status = LoginTokenStatus.ACTIVE
-                            this.token = UUID.randomUUID().toString()
+                        if (account.loginToken == null) {
+                            account.loginToken = LoginToken().apply {
+                                this.account = account
+                                this.userAgent = req.userAgent()
+                                this.ipAddress = req.ip()
+                                this.status = LoginTokenStatus.ACTIVE
+                                this.token = UUID.randomUUID().toString()
+                            }
+                            account.loginToken?.save()
                         }
-                        account.loginToken?.save()
-                    }
 
-                    account.save()
+                        account.hasSpotify = true
+                        account.update()
 
-                    req.session(true).attribute("token", account.loginToken?.token)
+                        req.session(true).attribute("token", account.loginToken?.token)
 
-                    if (state?.isNotBlank() == true) {
-                        res.redirect("$state?loginToken=${account.loginToken?.token}")
-                    } else {
-                        res.redirect(Spotify.FRONTEND_HOST)
+                        if (state?.isNotBlank() == true) {
+                            res.redirect("$state?loginToken=${account.loginToken?.token}")
+                        } else {
+                            res.redirect(Spotify.FRONTEND_HOST)
+                        }
                     }
                 }
             }
@@ -228,7 +244,6 @@ class SpotifyEndpoint {
 
         val token: LoginToken = req.attribute("account")
 
-        println("spotif token ${token.account?.spotify}")
         val account = token.account?.spotify
         if (account != null) {
             val songs = Spotify.searchSongs(account.accessToken!!, account.refreshToken!!, filters, offset, limit)
@@ -302,6 +317,9 @@ class SpotifyEndpoint {
         }
     }
 
+    private fun getLoginToken(loginToken: String): Account? {
+        return Account.finder.query().where(Expr.eq("loginToken.token", loginToken)).findUnique()
+    }
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)

@@ -2,8 +2,10 @@ package uk.bipush.party.task
 
 import org.joda.time.DateTime
 import uk.bipush.party.endpoint.net.PartyWebSocket
+import uk.bipush.party.handler.PartyManager
 import uk.bipush.party.model.Party
 import uk.bipush.party.model.PartyMember
+import uk.bipush.party.model.PartyQueueEntryStatus
 
 class PartyUpdater : Runnable {
 
@@ -32,6 +34,15 @@ class PartyUpdater : Runnable {
 
                 if (member.party != null) {
                     member.party!!.activeMemberCount--
+
+                    val nowPlaying = member.party?.nowPlaying
+                    if (nowPlaying != null && nowPlaying.votesToSkip >= Math.ceil(member.party!!.activeMemberCount.toDouble() / 2)) {
+                        nowPlaying.status == PartyQueueEntryStatus.SKIPPED
+                        nowPlaying.update()
+
+                        PartyManager.managers[nowPlaying.party!!.type]?.playNext(nowPlaying.party!!.id)
+                    }
+
                     member.party!!.update()
 
                     PartyWebSocket.sendPartyUpdate(member.party!!, member.party!!.members)

@@ -57,7 +57,7 @@ class PartyWebSocket {
         }
 
         fun sendPartyUpdate(party: Party, accounts: Set<PartyMember>) {
-            val json = mapper.writeValueAsString(party.response(false))
+            val json = mapper.writeValueAsString(party.response(false, false))
 
             val msg = mapper.writeValueAsString(WSMessage("PARTY_UPDATE", json))
 
@@ -68,8 +68,6 @@ class PartyWebSocket {
             val json = mapper.writeValueAsString(command)
             val msg = mapper.writeValueAsString(WSMessage("COMMAND", json))
 
-            println(msg)
-            println(accounts)
             sendMessage(msg, accounts)
         }
 
