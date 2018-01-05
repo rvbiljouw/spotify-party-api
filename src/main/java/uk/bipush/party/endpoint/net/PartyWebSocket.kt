@@ -39,7 +39,6 @@ class PartyWebSocket {
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
         val MAX_CHAT_MESSAGE_CACHE_SIZE = 50
-
         private val connections: BiMap<Session, PartyMember> = HashBiMap.create()
         private val chatCache: HashMap<Party, Queue<ChatMessage>> = HashMap()
 
@@ -119,11 +118,13 @@ class PartyWebSocket {
 
     @OnWebSocketClose
     fun onClose(user: Session, statusCode: Int, reason: String) {
+        println("Use rdisconnected")
         connections.remove(user)
     }
 
     @OnWebSocketMessage
     fun onMessage(user: Session, message: String) {
+        println(message)
         val wsRequest: WSMessage = mapper.readValue(message)
         if (wsRequest.opcode == null || wsRequest.body == null) {
             return

@@ -68,7 +68,7 @@ object Spotify {
                     val client = OkHttpClient()
                     val response = client.newCall(request).execute()
 
-                    when(response.code()) {
+                    when (response.code()) {
                         HttpStatus.NO_CONTENT_204 -> {
                             if (position > 0) {
                                 seek(position, it, true)
@@ -130,7 +130,7 @@ object Spotify {
                     val client = OkHttpClient()
                     val response = client.newCall(request).execute()
 
-                    when(response.code()) {
+                    when (response.code()) {
                         HttpStatus.NO_CONTENT_204 -> {
                             successful = true
                         }
@@ -213,8 +213,11 @@ object Spotify {
                 .build()
         val client = OkHttpClient()
         val response = client.newCall(request).execute()
-        if (response.body() != null) {
-            val devices: SpotifyDeviceResponse = mapper.readValue(response.body()!!.string())
+        if (response.isSuccessful && response.body() != null) {
+            val msg = response.body()!!.string()
+            println(msg)
+            println(response.message())
+            val devices: SpotifyDeviceResponse = mapper.readValue(msg)
             response.close()
             return devices
         } else {

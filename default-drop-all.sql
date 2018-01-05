@@ -46,7 +46,6 @@ alter table spotify_account drop constraint if exists fk_spotify_account_active_
 drop index if exists ix_spotify_account_active_party_id;
 
 alter table spotify_account drop constraint if exists fk_spotify_account_account_id;
-drop index if exists ix_spotify_account_account_id;
 
 drop table if exists account;
 
@@ -72,4 +71,3 @@ drop table if exists subscription;
 
 drop index if exists ix_account_email;
 drop index if exists ix_party_member_active;
-drop index if exists ix_spotify_account_spotify_id;

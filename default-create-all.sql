@@ -136,6 +136,8 @@ create table spotify_account (
   device                        varchar(255),
   created                       timestamp not null,
   updated                       timestamp not null,
+  constraint uq_spotify_account_spotify_id unique (spotify_id),
+  constraint uq_spotify_account_account_id unique (account_id),
   constraint pk_spotify_account primary key (id)
 );
 
@@ -151,7 +153,6 @@ create table subscription (
 
 create index ix_account_email on account (email);
 create index ix_party_member_active on party_member (active);
-create index ix_spotify_account_spotify_id on spotify_account (spotify_id);
 alter table account add constraint fk_account_subscription_id foreign key (subscription_id) references subscription (id) on delete restrict on update restrict;
 create index ix_account_subscription_id on account (subscription_id);
 
@@ -200,5 +201,4 @@ alter table spotify_account add constraint fk_spotify_account_active_party_id fo
 create index ix_spotify_account_active_party_id on spotify_account (active_party_id);
 
 alter table spotify_account add constraint fk_spotify_account_account_id foreign key (account_id) references account (id) on delete restrict on update restrict;
-create index ix_spotify_account_account_id on spotify_account (account_id);
 
