@@ -13,6 +13,7 @@ class TrackResponse {
     var explicit: Boolean = false
     var popularity: Int = 0
     var previewUrl: String? = null
+    var uploadedBy: String? = null
 }
 
 fun Track.fromSpotify(): TrackResponse {

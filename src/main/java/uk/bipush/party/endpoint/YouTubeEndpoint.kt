@@ -80,7 +80,8 @@ class YouTubeEndpoint {
         search.type = "video"
         search.videoDuration = "short"
         search.maxResults = limit.toLong()
-        search.order = "relevance"
+        search.order = "viewCount"
+        search.topicId = "/m/04rlf"
         val result = search.execute()
 
         res.header("X-Max-Records", result.pageInfo.totalResults.toString())
@@ -111,6 +112,7 @@ class YouTubeEndpoint {
                 this.uri = url
                 this.thumbnail = thumbnail
                 this.duration = duration.toInt()
+                this.uploadedBy = it.snippet.channelTitle
             }
         }
     }

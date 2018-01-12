@@ -54,7 +54,7 @@
         <dependency>
             <groupId>com.google.apis</groupId>
             <artifactId>google-api-services-youtube</artifactId>
-            <version>v3-rev187-1.23.0</version>
+            <version>v3-rev189-1.23.0</version>
         </dependency>
 
         <dependency>
