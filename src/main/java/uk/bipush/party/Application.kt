@@ -16,10 +16,8 @@ import uk.bipush.http.builtin.filter.TenantContextFilter
 import uk.bipush.party.endpoint.*
 import uk.bipush.party.endpoint.net.PartyWebSocket
 import uk.bipush.party.handler.PartyManager
-import uk.bipush.party.task.SpotifyBot
 import uk.bipush.party.task.PartyUpdater
 import uk.bipush.party.task.TokenRefresher
-import uk.bipush.party.task.YouTubeBot
 import uk.bipush.party.util.AccountRepository
 import uk.bipush.party.util.ExpireableRunnable
 import java.util.*
@@ -74,7 +72,8 @@ fun main(args: Array<String>) {
             QueueEndpoint::class.java,
             SlackEndpoint::class.java,
             SpotifyEndpoint::class.java,
-            YouTubeEndpoint::class.java)
+            YouTubeEndpoint::class.java,
+            FavouriteEndpoint::class.java)
     val injector = Guice.createInjector(object : AbstractModule() {
         override fun configure() {
             install(BasicWebModule())
@@ -91,8 +90,6 @@ fun main(args: Array<String>) {
 
     executorService.scheduleAtFixedRate(ExpireableRunnable("TokenRefresher", TokenRefresher()), 0, 5L, TimeUnit.MINUTES)
     executorService.scheduleAtFixedRate(ExpireableRunnable("PartyUpdater", PartyUpdater()), 0, 1L, TimeUnit.MINUTES)
-    executorService.scheduleAtFixedRate(ExpireableRunnable("SpotifyBot", SpotifyBot()), 0, 30L, TimeUnit.SECONDS)
-    executorService.scheduleAtFixedRate(ExpireableRunnable("YouTubeBot", YouTubeBot()), 0, 30L, TimeUnit.SECONDS)
 
     PartyManager.managers.forEach { t, u -> Thread(u).start() }
 }
