@@ -81,7 +81,6 @@ class QueueEndpoint {
         val token: LoginToken = req.attribute("account")
         val account = token.account!!
 
-
         val party = if (partyId != "active") Party.finder.byId(partyId.toLong()) else account.spotify?.activeParty
         if (party != null) {
             val request: QueueSongRequest = mapper.readValue(req.body())

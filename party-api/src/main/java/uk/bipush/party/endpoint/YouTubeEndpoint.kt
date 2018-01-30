@@ -35,6 +35,7 @@ class YouTubeEndpoint {
             override fun initialize(request: HttpRequest) {
             }
         }).setApplicationName("awsumio").build()
+
         private val mapper = ObjectMapper()
                 .registerModule(KotlinModule())
                 .registerModule(JodaModule())
