@@ -12,6 +12,12 @@
     <artifactId>party-api</artifactId>
 
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>19.0</version>
+        </dependency>
 
 
         <dependency>
@@ -52,11 +58,11 @@
             <version>3.9.0</version>
         </dependency>
 
-
+        <!-- https://mvnrepository.com/artifact/com.google.cloud/google-cloud-storage -->
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-storage</artifactId>
-            <version>1.0.1</version>
+            <version>1.15.0</version>
         </dependency>
 
         <dependency>

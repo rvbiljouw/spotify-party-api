@@ -10,7 +10,6 @@ import com.google.cloud.storage.Acl
 import com.google.cloud.storage.BlobInfo
 import com.google.cloud.storage.Storage
 import com.google.cloud.storage.StorageOptions
-import com.google.common.cache.CacheBuilder
 import com.google.common.hash.Hashing
 import com.google.common.io.Files
 import org.hibernate.validator.constraints.Email
@@ -18,7 +17,6 @@ import org.hibernate.validator.constraints.Length
 import org.hibernate.validator.constraints.NotEmpty
 import org.mindrot.jbcrypt.BCrypt
 import spark.Route
-import spark.Spark
 import spark.route.HttpMethod
 import uk.bipush.http.Endpoint
 import uk.bipush.http.auth.Auth
@@ -28,13 +26,12 @@ import uk.bipush.http.response.error
 import uk.bipush.http.response.response
 import uk.bipush.http.util.ValidatedRequest
 import uk.bipush.http.util.validate
-import uk.bipush.party.model.*
-import uk.bipush.party.util.JacksonResponseTransformer
-import java.awt.image.BufferedImage
+import uk.bipush.party.model.Account
+import uk.bipush.party.model.LoginToken
+import uk.bipush.party.model.LoginTokenStatus
+import uk.bipush.party.model.response
 import java.io.File
 import java.util.*
-import java.util.concurrent.TimeUnit
-import javax.imageio.ImageIO
 import javax.servlet.MultipartConfigElement
 
 
@@ -56,6 +53,19 @@ class AccountEndpoint {
         } else {
             res.status(403)
             mapOf("error" to "You're not logged in.")
+        }
+    }
+
+    @field:Auth
+    @field:Endpoint(method = HttpMethod.get, uri = "/api/v1/account/:id")
+    val getAccountById = Route { req, res ->
+        val idParam: Long = req.params(":id").toLong()
+        val account = Account.finder.byId(idParam)
+        if (account != null) {
+            account.response(withChildren = true, withLoginToken = false)
+        } else {
+            res.status(404)
+            mapOf("error" to "Account not found or no access to view.")
         }
     }
 
@@ -128,41 +138,24 @@ class AccountEndpoint {
     }
 
     @field:Auth
-    @field:Endpoint(uri = "/api/v1/account/picture", method = HttpMethod.put)
+    @field:Endpoint(method = HttpMethod.put, uri = "/api/v1/account/picture")
     val uploadProfilePicture = Route { req, res ->
-        val multipartConfigElement = MultipartConfigElement("/tmp/")
-        req.raw().setAttribute("org.eclipse.jetty.multipartConfig", multipartConfigElement)
         val token: LoginToken = req.attribute("account")
         val account = token.account!!
 
-        val filePart = req.raw().getPart("file")
-        var fileName = filePart.submittedFileName
+        val fileName = "${System.currentTimeMillis()}-${account.id}.png"
 
-        val file = File("/tmp/${System.currentTimeMillis()}.tmp")
-        filePart.write(file.name)
-        if (file.exists()) {
-            val hash = Files.hash(file, Hashing.adler32()).toString()
-            fileName = getBlobFileName(hash, fileName)
+        val blob = storage.create(BlobInfo
+                .newBuilder("awsumio-storage", fileName)
+                .setAcl(listOf(Acl.of(Acl.User.ofAllUsers(), Acl.Role.READER)))
+                .build(),
+                Base64.getDecoder().decode(req.body().split("base64,").last()))
 
-            val blob = storage.create(BlobInfo
-                    .newBuilder("awsumio-storage", fileName)
-                    .setAcl(listOf(Acl.of(Acl.User.ofAllUsers(), Acl.Role.READER)))
-                    .setMetadata(mapOf("adlerHash" to hash)).build(),
-                    file.inputStream())
-            account.displayPicture = blob.mediaLink
-            account.save()
+        account.displayPicture = blob.mediaLink
+        account.save()
 
-            account.response()
-        } else {
-            res.status(500)
-        }
+        account.response()
     }
-
-
-    private fun getBlobFileName(hash: String, fileName: String): String {
-        return "$hash-${System.currentTimeMillis()}-$fileName"
-    }
-
 
 }
 
