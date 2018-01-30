@@ -31,7 +31,7 @@ class YouTubeMaster {
         var nextToken: String? = null
         val bots: MutableList<YoutubePlaylistBot> = mutableListOf()
 
-        val limit = 500
+        val limit = 1000
 
         val account = getCreateBotAccount()
 

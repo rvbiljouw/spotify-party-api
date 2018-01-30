@@ -105,7 +105,7 @@ class YoutubePlaylistBot(val playlist: Playlist, val account: Account) : Bot() {
                 if (videoTitle.size > 1) {
                     title = videoTitle[1]
                 }
-                val thumbnail = item.snippet.thumbnails.default.url
+                val thumbnail = item.snippet.thumbnails.high.url
                 val url = "https://www.youtube.com/watch?v=$id"
                 val duration = durationCache.get(id) ?: 0
 

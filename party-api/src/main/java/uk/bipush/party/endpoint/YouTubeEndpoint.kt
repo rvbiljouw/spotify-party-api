@@ -104,7 +104,7 @@ class YouTubeEndpoint {
             if (videoTitle.size > 1) {
                 title = videoTitle[1]
             }
-            val thumbnail = it.snippet.thumbnails.default.url
+            val thumbnail = it.snippet.thumbnails.high.url
             val url = "https://www.youtube.com/watch?v=$id"
             val duration = durationCache.get(id) ?: 0
             TrackResponse().apply {
