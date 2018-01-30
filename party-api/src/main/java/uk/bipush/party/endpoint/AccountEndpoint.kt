@@ -6,7 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.joda.JodaModule
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
+import com.google.cloud.storage.Acl
+import com.google.cloud.storage.BlobInfo
+import com.google.cloud.storage.Storage
+import com.google.cloud.storage.StorageOptions
 import com.google.common.cache.CacheBuilder
+import com.google.common.hash.Hashing
+import com.google.common.io.Files
 import org.hibernate.validator.constraints.Email
 import org.hibernate.validator.constraints.Length
 import org.hibernate.validator.constraints.NotEmpty
@@ -24,8 +30,12 @@ import uk.bipush.http.util.ValidatedRequest
 import uk.bipush.http.util.validate
 import uk.bipush.party.model.*
 import uk.bipush.party.util.JacksonResponseTransformer
+import java.awt.image.BufferedImage
+import java.io.File
 import java.util.*
 import java.util.concurrent.TimeUnit
+import javax.imageio.ImageIO
+import javax.servlet.MultipartConfigElement
 
 
 class AccountEndpoint {
@@ -34,13 +44,13 @@ class AccountEndpoint {
                 .registerModule(KotlinModule())
                 .registerModule(JodaModule())
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        private val storage: Storage = StorageOptions.getDefaultInstance().service
     }
 
     @field:Auth
     @field:Endpoint(method = HttpMethod.get, uri = "/api/v1/account")
     val getAccount = Route { req, res ->
         val token: LoginToken = req.attribute("account")
-//        val loginToken: String? = req.queryParams("loginToken")
         if (token.account != null) {
             token.account?.response(withChildren = false, withLoginToken = true)
         } else {
@@ -89,13 +99,12 @@ class AccountEndpoint {
     @field:Endpoint(method = HttpMethod.put, uri = "/api/v1/account")
     val updateAccount = Route { req, res ->
         val token: LoginToken = req.attribute("account")
-
         val updateRequest: UpdateAccountRequest = mapper.readValue(req.body())
-
         val errors = updateRequest.validate()
         if (errors.isEmpty()) {
-                val accountWithEmail = Account.finder.query().where().eq(
-                        "email", updateRequest.email ?: token.account?.email).findUnique()
+            val accountWithEmail = Account.finder.query().where()
+                    .eq("email", updateRequest.email ?: token.account?.email)
+                    .findUnique()
 
             if (accountWithEmail != null && accountWithEmail.id != token.account?.id) {
                 res.error(Errors.conflict, ErrorResponse("That email is alaready in use"))
@@ -117,6 +126,43 @@ class AccountEndpoint {
             res.error(Errors.badRequest, errors.map { it.response() })
         }
     }
+
+    @field:Auth
+    @field:Endpoint(uri = "/api/v1/account/picture", method = HttpMethod.put)
+    val uploadProfilePicture = Route { req, res ->
+        val multipartConfigElement = MultipartConfigElement("/tmp/")
+        req.raw().setAttribute("org.eclipse.jetty.multipartConfig", multipartConfigElement)
+        val token: LoginToken = req.attribute("account")
+        val account = token.account!!
+
+        val filePart = req.raw().getPart("file")
+        var fileName = filePart.submittedFileName
+
+        val file = File("/tmp/${System.currentTimeMillis()}.tmp")
+        filePart.write(file.name)
+        if (file.exists()) {
+            val hash = Files.hash(file, Hashing.adler32()).toString()
+            fileName = getBlobFileName(hash, fileName)
+
+            val blob = storage.create(BlobInfo
+                    .newBuilder("awsumio-storage", fileName)
+                    .setAcl(listOf(Acl.of(Acl.User.ofAllUsers(), Acl.Role.READER)))
+                    .setMetadata(mapOf("adlerHash" to hash)).build(),
+                    file.inputStream())
+            account.displayPicture = blob.mediaLink
+            account.save()
+
+            account.response()
+        } else {
+            res.status(500)
+        }
+    }
+
+
+    private fun getBlobFileName(hash: String, fileName: String): String {
+        return "$hash-${System.currentTimeMillis()}-$fileName"
+    }
+
 
 }
 
