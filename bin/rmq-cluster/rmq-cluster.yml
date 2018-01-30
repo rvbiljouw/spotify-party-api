@@ -1,0 +1,110 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: rabbitmq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+      - name: rabbitmq
+        imagePullPolicy: Always
+        image: gcr.io/awsumio-191915/rmq:0.1.0
+        resources:
+          requests:
+            cpu: 30m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 5120Mi
+        ports:
+          - containerPort: 5672
+            name: queue-port
+          - containerPort: 4369
+            name: cluster-port
+          - containerPort: 5671
+            name: port-5671
+          - containerPort: 15672
+            name: management-port
+          - containerPort: 25672
+            name: dist-port
+        env:
+          - name: HOSTNAME
+            value: rabbitmq
+          - name: MY_POD_IP
+            valueFrom:
+             fieldRef:
+              fieldPath: status.podIP
+          - name: RABBITMQ_DEFAULT_USER
+            valueFrom:
+              secretKeyRef:
+                name: rmq-credentials
+                key: user
+          - name: RABBITMQ_DEFAULT_PASS
+            valueFrom:
+              secretKeyRef:
+                name: rmq-credentials
+                key: password
+          - name: RABBITMQ_LOG_LEVEL
+            value: info
+          - name: AUTOCLUSTER_CLEANUP
+            value: "true"
+          - name: CLEANUP_INTERVAL
+            value: "60"
+          - name: CLEANUP_WARN_ONLY
+            value: "false"
+          # start.sh will store this value to a proper location in filesystem
+          - name: RABBITMQ_ERLANG_COOKIE
+            valueFrom:
+              secretKeyRef:
+                name: rmq-credentials
+                key: cookie
+        volumeMounts:
+        - name: rabbitmq-storage
+          mountPath: /var/lib/rabbitmq
+      volumes:
+        - name: rmq-credentials
+          secret:
+            secretName: rmq-credentials
+        - name: rabbitmq-storage
+          persistentVolumeClaim:
+            claimName: "rabbitmq-storage-claim"
+---
+kind: "Service"
+apiVersion: v1
+metadata:
+  name: rabbitmq-management
+spec:
+  type: LoadBalancer
+  selector:
+    app: rabbitmq
+  sessionAffinity: ClientIP
+  ports:
+    - name: management-port
+      port: 15672
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: rabbitmq
+  name: rabbitmq
+spec:
+  type: ClusterIP
+  selector:
+    app: rabbitmq
+  ports:
+  - port: 5672
+    name: queue-port
+  - port: 4369
+    name: cluster-port
+  - port: 5671
+    name: port-5671
+  - port: 25672
+    name: dist-port

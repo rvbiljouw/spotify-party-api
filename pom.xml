@@ -6,7 +6,15 @@
 
     <groupId>uk.bipush</groupId>
     <artifactId>spotify-party-api</artifactId>
+    <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
+    <modules>
+        <module>party-manager</module>
+        <module>party-bot</module>
+        <module>party-api</module>
+        <module>database</module>
+        <module>queue-lib</module>
+    </modules>
 
     <pluginRepositories>
         <pluginRepository>
@@ -26,122 +34,13 @@
     </pluginRepositories>
 
     <properties>
-        <kotlin.version>1.1.50</kotlin.version>
+        <kotlin.version>1.2.10</kotlin.version>
         <spark.version>2.6.0</spark.version>
         <jackson.version>2.8.7</jackson.version>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>io.ebean</groupId>
-            <artifactId>ebean</artifactId>
-            <version>10.3.1</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-core</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
 
-        <dependency>
-            <groupId>de.svenkubiak</groupId>
-            <artifactId>jBCrypt</artifactId>
-            <version>RELEASE</version>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/com.google.apis/google-api-services-youtube -->
-        <dependency>
-            <groupId>com.google.apis</groupId>
-            <artifactId>google-api-services-youtube</artifactId>
-            <version>v3-rev189-1.23.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>uk.airglide</groupId>
-            <artifactId>sparky</artifactId>
-            <version>1.1.0-SNAPSHOT</version>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/io.ebean/ebean-agent -->
-        <dependency>
-            <groupId>io.ebean</groupId>
-            <artifactId>ebean-agent</artifactId>
-            <version>10.1.6</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.avaje</groupId>
-            <artifactId>avaje-agentloader</artifactId>
-            <version>2.1.2</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <version>1.4.196</version>
-        </dependency>
-
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>5.1.42</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.glassfish</groupId>
-            <artifactId>javax.el</artifactId>
-            <version>3.0.1-b08</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-joda</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp -->
-        <dependency>
-            <groupId>com.squareup.okhttp3</groupId>
-            <artifactId>okhttp</artifactId>
-            <version>3.9.0</version>
-        </dependency>
-
-
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-storage</artifactId>
-            <version>1.0.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-kotlin</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-simple -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.7.25</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.5</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.sparkjava</groupId>
-            <artifactId>spark-core</artifactId>
-            <version>${spark.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>se.michaelthelin.spotify</groupId>
-            <artifactId>spotify-web-api-java</artifactId>
-            <version>1.5.0</version>
-        </dependency>
 
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
