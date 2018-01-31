@@ -34,16 +34,19 @@ class PartyQueue {
             }
         }
 
-        fun queueSong(account: Account, party: Party, title: String, artist: String, duration: Int, thumbnail: String, uri: String):
+        fun queueSong(account: Account, party: Party, songId: String, title: String, artist: String, duration: Int,
+                      thumbnail: String, uri: String, uploadedBy: String?):
                 PartyQueueEntry {
             val entry = PartyQueueEntry().apply {
                 this.party = party
                 this.member = account
+                this.songId = songId
                 this.artist = artist
                 this.title = title
                 this.duration = duration
                 this.thumbnail = thumbnail
                 this.uri = uri
+                this.uploadedBy = uploadedBy
             }
 
             entry.save()

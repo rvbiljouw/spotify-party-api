@@ -108,7 +108,6 @@ fun Account.response(withChildren: Boolean = false, withLoginToken: Boolean = fa
         this.updated = self.updated
 
         this.hasSpotify = self.hasSpotify
-        this.spotify = self.spotify?.response(false, false)
 
         if (withLoginToken) {
             this.loginToken = self.loginToken?.response()
@@ -116,6 +115,7 @@ fun Account.response(withChildren: Boolean = false, withLoginToken: Boolean = fa
 
         if (withChildren) {
             this.achievements = self.achievements
+            this.spotify = self.spotify?.response(false, false)
         }
     }
 }

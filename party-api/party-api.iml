@@ -7,7 +7,7 @@
         <compilerArguments>
           <option name="jvmTarget" value="1.8" />
           <option name="languageVersion" value="1.2" />
-          <option name="apiVersion" value="1.1" />
+          <option name="apiVersion" value="1.2" />
           <option name="pluginOptions">
             <array />
           </option>
@@ -30,6 +30,25 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Maven: com.google.guava:guava:19.0" level="project" />
+    <orderEntry type="library" name="Maven: org.jetbrains.kotlin:kotlin-stdlib:1.1.1" level="project" />
+    <orderEntry type="library" name="Maven: org.jetbrains.kotlin:kotlin-reflect:1.1.1" level="project" />
+    <orderEntry type="library" name="Maven: com.google.cloud:google-cloud-storage:1.15.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.cloud:google-cloud-core:1.15.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.code.findbugs:jsr305:3.0.1" level="project" />
+    <orderEntry type="library" name="Maven: com.google.api:api-common:1.2.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.api:gax:1.16.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.auto.value:auto-value:1.2" level="project" />
+    <orderEntry type="library" name="Maven: com.google.protobuf:protobuf-java-util:3.5.1" level="project" />
+    <orderEntry type="library" name="Maven: com.google.api.grpc:proto-google-common-protos:1.0.4" level="project" />
+    <orderEntry type="library" name="Maven: com.google.api.grpc:proto-google-iam-v1:0.1.28" level="project" />
+    <orderEntry type="library" name="Maven: com.google.cloud:google-cloud-core-http:1.15.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.auth:google-auth-library-credentials:0.9.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.auth:google-auth-library-oauth2-http:0.9.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.http-client:google-http-client-appengine:1.23.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.http-client:google-http-client-jackson:1.23.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.api:gax-httpjson:0.33.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.apis:google-api-services-storage:v1-rev114-1.23.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.guava:guava:19.0" level="project" />
     <orderEntry type="library" name="Maven: de.svenkubiak:jBCrypt:0.4.1" level="project" />
     <orderEntry type="library" name="Maven: com.google.apis:google-api-services-youtube:v3-rev189-1.23.0" level="project" />
     <orderEntry type="library" name="Maven: com.google.api-client:google-api-client:1.23.0" level="project" />
@@ -37,9 +56,9 @@
     <orderEntry type="library" name="Maven: com.google.http-client:google-http-client-jackson2:1.23.0" level="project" />
     <orderEntry type="library" name="Maven: com.google.guava:guava-jdk5:17.0" level="project" />
     <orderEntry type="library" name="Maven: uk.airglide:sparky:1.1.0-SNAPSHOT" level="project" />
-    <orderEntry type="library" name="Maven: org.jetbrains.kotlin:kotlin-stdlib:1.1.1" level="project" />
+    <orderEntry type="library" name="Maven: org.jetbrains.kotlin:kotlin-stdlib:1.1.4" level="project" />
     <orderEntry type="library" name="Maven: org.jetbrains:annotations:13.0" level="project" />
-    <orderEntry type="library" name="Maven: org.jetbrains.kotlin:kotlin-reflect:1.1.1" level="project" />
+    <orderEntry type="library" name="Maven: org.jetbrains.kotlin:kotlin-reflect:1.1.4" level="project" />
     <orderEntry type="library" name="Maven: org.glassfish:javax.el:3.0.1-b08" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.datatype:jackson-datatype-joda:2.8.7" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-annotations:2.8.0" level="project" />

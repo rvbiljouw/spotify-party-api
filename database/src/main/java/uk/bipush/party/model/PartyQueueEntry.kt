@@ -25,11 +25,13 @@ class PartyQueueEntry : Model() {
     var party: Party? = null
     @ManyToOne
     var member: Account? = null
+    var songId: String? = ""
     var artist: String? = ""
     var title: String? = ""
     var thumbnail: String? = ""
     var duration: Int = 0
     var uri: String? = ""
+    var uploadedBy: String? = ""
     var playedAt: Long = 0
     var votes: Int = 0
     var upvotes: Int = 0
@@ -68,10 +70,12 @@ class PartyQueueEntryResponse {
     var id: Long = 0
     var party: PartyResponse? = null
     var member: AccountResponse? = null
+    var songId: String? = ""
     var artist: String? = ""
     var title: String? = ""
     var thumbnail: String? = ""
     var uri: String? = ""
+    var uploadedBy: String? = ""
     var votes: Int = 0
     var upvotes: Int = 0
     var downvotes: Int = 0
@@ -88,13 +92,15 @@ fun PartyQueueEntry.response(withTokens: Boolean = false, withParty: Boolean = t
     return PartyQueueEntryResponse().apply {
         this.id = self.id
         if (withParty) {
-            this.party = self.party?.response(withTokens)
+            this.party = self.party?.response(false)
         }
-        this.member = self.member?.response(withTokens, false)
+        this.member = self.member?.response(false, false)
+        this.songId = self.songId
         this.artist = self.artist
         this.title = self.title
         this.thumbnail = self.thumbnail
         this.uri = self.uri
+        this.uploadedBy = self.uploadedBy
         this.votes = self.votes
         this.upvotes = self.upvotes
         this.downvotes = self.downvotes

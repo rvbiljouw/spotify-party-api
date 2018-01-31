@@ -200,3 +200,6 @@ Caused by: java.lang.IllegalStateException: The file is locked: nio:/Users/jackh
 	at org.h2.mvstore.FileStore.open(FileStore.java:173)
 	at org.h2.mvstore.MVStore.<init>(MVStore.java:347)
 	... 32 more
+2018-01-31 11:07:46 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLException: Table "FAVOURITE_SONG" not found; SQL statement:
+alter table favourite_song drop constraint if exists fk_favourite_song_account_id [42102-196]

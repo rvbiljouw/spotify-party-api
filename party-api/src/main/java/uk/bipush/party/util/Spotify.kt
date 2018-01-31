@@ -215,8 +215,6 @@ object Spotify {
         val response = client.newCall(request).execute()
         if (response.isSuccessful && response.body() != null) {
             val msg = response.body()!!.string()
-            println(msg)
-            println(response.message())
             val devices: SpotifyDeviceResponse = mapper.readValue(msg)
             response.close()
             return devices

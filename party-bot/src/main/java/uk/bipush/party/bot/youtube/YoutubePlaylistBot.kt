@@ -112,10 +112,11 @@ class YoutubePlaylistBot(val playlist: Playlist, val account: Account) : Bot() {
                 val entries = PartyQueueEntry.finder.query().where()
                         .eq("party.id", party.id)
                         .eq("uri", url)
+                        .`in`("status", listOf(PartyQueueEntryStatus.PLAYING, PartyQueueEntryStatus.IN_QUEUE))
                         .setMaxRows(1)
-                        .findList()
+                        .findCount()
 
-                if (entries.isEmpty()) {
+                if (entries == 0) {
                     QueueSongRequest(artist, title, thumbnail, url, duration.toInt())
                 } else null
             })

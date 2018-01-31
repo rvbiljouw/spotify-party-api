@@ -63,8 +63,8 @@ object SlackActionHandlers {
         val songSelect: SongSelect = mapper.readValue(action.value!!)
         val party = account?.spotify?.activeParty
         if (party != null && songSelect.uri != null) {
-            val entry = PartyQueue.queueSong(account, party, songSelect.title ?: "-", songSelect.artist ?: "-",
-                    songSelect.duration ?: -0, songSelect.thumbnail ?: "", songSelect.uri!!)
+            val entry = PartyQueue.queueSong(account, party, songSelect.songId, songSelect.title ?: "-", songSelect.artist ?: "-",
+                    songSelect.duration ?: -0, songSelect.thumbnail ?: "", songSelect.uri!!, songSelect.uploadedBy)
 
             entry.response(false)
             return SlackActionResponse("in_channel", false,

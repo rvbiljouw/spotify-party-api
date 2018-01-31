@@ -31,7 +31,7 @@ class YouTubeMaster {
         var nextToken: String? = null
         val bots: MutableList<YoutubePlaylistBot> = mutableListOf()
 
-        val limit = 1000
+        val limit = 300
 
         val account = getCreateBotAccount()
 
@@ -69,7 +69,7 @@ class YouTubeMaster {
             }
         }
 
-        return bots
+        return bots.distinctBy { it.playlist.id }
     }
 
     private fun getCreateBotAccount(): Account {

@@ -6,11 +6,11 @@ create table account (
   password                      varchar(255),
   display_picture               varchar(255),
   display_name                  varchar(255),
-  has_spotify                   boolean default false not null,
+  has_spotify                   tinyint(1) default 0 not null,
   spotify_id                    bigint,
   login_token_id                bigint,
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint ck_account_account_type check ( account_type in ('REGULAR','STAFF','BOT')),
   constraint uq_account_spotify_id unique (spotify_id),
   constraint pk_account primary key (id)
@@ -28,8 +28,8 @@ create table account_link (
   token                         varchar(255),
   account_id                    bigint,
   link_type                     varchar(5),
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint ck_account_link_link_type check ( link_type in ('SLACK')),
   constraint uq_account_link_external_id unique (external_id),
   constraint uq_account_link_token unique (token),
@@ -41,9 +41,27 @@ create table achievement (
   name                          varchar(255),
   description                   varchar(255),
   badge_url                     varchar(255),
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint pk_achievement primary key (id)
+);
+
+create table favourite_song (
+  id                            bigint auto_increment not null,
+  account_id                    bigint,
+  type                          varchar(7),
+  song_id                       varchar(255),
+  artist                        varchar(255),
+  title                         varchar(255),
+  uri                           varchar(255),
+  thumbnail                     varchar(255),
+  duration                      integer not null,
+  preview_url                   varchar(255),
+  uploaded_by                   varchar(255),
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
+  constraint ck_favourite_song_type check ( type in ('YOUTUBE','SPOTIFY')),
+  constraint pk_favourite_song primary key (id)
 );
 
 create table login_token (
@@ -53,9 +71,9 @@ create table login_token (
   token                         varchar(255),
   ip_address                    varchar(255),
   user_agent                    varchar(255),
-  last_seen                     timestamp,
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  last_seen                     datetime(6),
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint ck_login_token_status check ( status in ('ACTIVE','EXPIRED')),
   constraint pk_login_token primary key (id)
 );
@@ -72,8 +90,8 @@ create table party (
   status                        varchar(7),
   access                        varchar(8),
   type                          varchar(10),
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint ck_party_status check ( status in ('ONLINE','OFFLINE')),
   constraint ck_party_access check ( access in ('PUBLIC','PRIVATE','PASSWORD')),
   constraint ck_party_type check ( type in ('YOUTUBE','SOUNDCLOUD','SPOTIFY')),
@@ -85,10 +103,10 @@ create table party_member (
   rank                          varchar(9),
   party_id                      bigint,
   account_id                    bigint,
-  last_seen                     timestamp,
-  active                        boolean default false not null,
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  last_seen                     datetime(6),
+  active                        tinyint(1) default 0 not null,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint ck_party_member_rank check ( rank in ('VISITOR','MODERATOR','HOST')),
   constraint pk_party_member primary key (id)
 );
@@ -97,19 +115,21 @@ create table party_queue_entry (
   id                            bigint auto_increment not null,
   party_id                      bigint,
   member_id                     bigint,
+  song_id                       varchar(255),
   artist                        varchar(255),
   title                         varchar(255),
   thumbnail                     varchar(255),
   duration                      integer not null,
   uri                           varchar(255),
+  uploaded_by                   varchar(255),
   played_at                     bigint not null,
   votes                         integer not null,
   upvotes                       integer not null,
   downvotes                     integer not null,
   votes_to_skip                 integer not null,
   status                        varchar(9),
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint ck_party_queue_entry_status check ( status in ('PLAYED','PLAYING','IN_QUEUE','CANCELLED','SKIPPED')),
   constraint pk_party_queue_entry primary key (id)
 );
@@ -118,10 +138,10 @@ create table party_queue_vote (
   id                            bigint auto_increment not null,
   account_id                    bigint,
   entry_id                      bigint,
-  upvote                        boolean,
-  vote_to_skip                  boolean,
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  upvote                        tinyint(1) default 0,
+  vote_to_skip                  tinyint(1) default 0,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint pk_party_queue_vote primary key (id)
 );
 
@@ -134,8 +154,8 @@ create table spotify_account (
   access_token                  varchar(255),
   refresh_token                 varchar(255),
   device                        varchar(255),
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint uq_spotify_account_spotify_id unique (spotify_id),
   constraint uq_spotify_account_account_id unique (account_id),
   constraint pk_spotify_account primary key (id)
@@ -146,12 +166,13 @@ create table subscription (
   name                          varchar(255),
   description                   varchar(255),
   cost                          decimal(38),
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint pk_subscription primary key (id)
 );
 
 create index ix_account_email on account (email);
+create index ix_favourite_song_uri on favourite_song (uri);
 create index ix_party_member_active on party_member (active);
 alter table account add constraint fk_account_subscription_id foreign key (subscription_id) references subscription (id) on delete restrict on update restrict;
 create index ix_account_subscription_id on account (subscription_id);
@@ -169,6 +190,9 @@ create index ix_account_achievement_achievement on account_achievement (achievem
 
 alter table account_link add constraint fk_account_link_account_id foreign key (account_id) references account (id) on delete restrict on update restrict;
 create index ix_account_link_account_id on account_link (account_id);
+
+alter table favourite_song add constraint fk_favourite_song_account_id foreign key (account_id) references account (id) on delete restrict on update restrict;
+create index ix_favourite_song_account_id on favourite_song (account_id);
 
 alter table login_token add constraint fk_login_token_account_id foreign key (account_id) references account (id) on delete restrict on update restrict;
 create index ix_login_token_account_id on login_token (account_id);

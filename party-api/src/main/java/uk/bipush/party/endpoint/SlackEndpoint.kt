@@ -164,7 +164,7 @@ data class SlackActionRequest(@JsonProperty("callback_id") var callbackId: Strin
 data class SlackAction(var text: String?, var name: String?, var value: String?, var type: String?)
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class SongSelect(var title: String?, var artist: String?, var duration: Int?, var thumbnail: String?, var uri: String?)
+data class SongSelect(var songId: String, var title: String?, var artist: String?, var duration: Int?, var thumbnail: String?, var uri: String?, val uploadedBy: String?)
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SlackActionResponse(@JsonProperty("response_type") var responseType: String,

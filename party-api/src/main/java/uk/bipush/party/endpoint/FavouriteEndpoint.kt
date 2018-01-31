@@ -10,6 +10,8 @@ import spark.Route
 import spark.route.HttpMethod
 import uk.bipush.http.Endpoint
 import uk.bipush.http.auth.Auth
+import uk.bipush.http.response.Errors
+import uk.bipush.http.response.error
 import uk.bipush.party.model.*
 import uk.bipush.party.util.DBUtils
 import uk.bipush.party.util.Filter
@@ -54,13 +56,48 @@ class FavouriteEndpoint {
     }
 
     @field:Auth
+    @field:Endpoint(method = HttpMethod.post, uri = "/api/v1/favourites/search")
+    val search = Route { req, res ->
+        val filters: List<Filter> = mapper.readValue(req.body())
+        req.attribute("filters", filters)
+        getFavourites.handle(req, res)
+    }
+
+    @field:Auth
     @field:Endpoint(uri = "/api/v1/favourites/add", method = HttpMethod.post)
     val addFavourite = Route { req, res ->
         val token: LoginToken? = req.attribute("account")
         val favourite: FavouriteSong = mapper.readValue(req.body())
-        favourite.account = token?.account
-        favourite.save()
-        favourite.response()
+
+        val existing = FavouriteSong.finder.query().where()
+                .eq("account.id", token!!.account!!.id)
+                .eq("songId", favourite.songId)
+                .eq("type", favourite.type)
+                .findOne()
+
+        if (existing == null) {
+            favourite.account = token.account
+            favourite.save()
+            favourite.response()
+        } else {
+            res.error(Errors.conflict)
+        }
+    }
+
+    @field:Auth
+    @field:Endpoint(uri = "/api/v1/favourites/:id", method = HttpMethod.delete)
+    val deleteFavourite = Route { req, res ->
+        val token: LoginToken? = req.attribute("account")
+        val id = req.params(":id").toLong()
+
+        val favourite = FavouriteSong.finder.byId(id)
+
+        if (favourite != null) {
+            favourite.delete()
+            favourite.response()
+        } else {
+            res.error(Errors.notFound)
+        }
     }
 
 }
