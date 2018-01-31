@@ -46,6 +46,24 @@ create table achievement (
   constraint pk_achievement primary key (id)
 );
 
+create table favourite_song (
+  id                            bigint auto_increment not null,
+  account_id                    bigint,
+  type                          varchar(7),
+  song_id                       varchar(255),
+  artist                        varchar(255),
+  title                         varchar(255),
+  uri                           varchar(255),
+  thumbnail                     varchar(255),
+  duration                      integer not null,
+  preview_url                   varchar(255),
+  uploaded_by                   varchar(255),
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
+  constraint ck_favourite_song_type check ( type in ('YOUTUBE','SPOTIFY')),
+  constraint pk_favourite_song primary key (id)
+);
+
 create table login_token (
   id                            bigint auto_increment not null,
   account_id                    bigint,
@@ -97,11 +115,13 @@ create table party_queue_entry (
   id                            bigint auto_increment not null,
   party_id                      bigint,
   member_id                     bigint,
+  song_id                       varchar(255),
   artist                        varchar(255),
   title                         varchar(255),
   thumbnail                     varchar(255),
   duration                      integer not null,
   uri                           varchar(255),
+  uploaded_by                   varchar(255),
   played_at                     bigint not null,
   votes                         integer not null,
   upvotes                       integer not null,
@@ -152,6 +172,7 @@ create table subscription (
 );
 
 create index ix_account_email on account (email);
+create index ix_favourite_song_uri on favourite_song (uri);
 create index ix_party_member_active on party_member (active);
 alter table account add constraint fk_account_subscription_id foreign key (subscription_id) references subscription (id) on delete restrict on update restrict;
 create index ix_account_subscription_id on account (subscription_id);
@@ -169,6 +190,9 @@ create index ix_account_achievement_achievement on account_achievement (achievem
 
 alter table account_link add constraint fk_account_link_account_id foreign key (account_id) references account (id) on delete restrict on update restrict;
 create index ix_account_link_account_id on account_link (account_id);
+
+alter table favourite_song add constraint fk_favourite_song_account_id foreign key (account_id) references account (id) on delete restrict on update restrict;
+create index ix_favourite_song_account_id on favourite_song (account_id);
 
 alter table login_token add constraint fk_login_token_account_id foreign key (account_id) references account (id) on delete restrict on update restrict;
 create index ix_login_token_account_id on login_token (account_id);

@@ -106,6 +106,7 @@ object SlackCommandHandlers {
     }
 
     fun handleSearchSongs(account: Account, slackCommandRequest: SlackCommandRequest): SlackActionResponse {
+        //TODO add songId here so can req
 //        val text = slackCommandRequest.text
 //        if (text == null || text.isBlank()) {
 //            return SlackActionResponse("ephemeral", false, "Please enter something to search for")

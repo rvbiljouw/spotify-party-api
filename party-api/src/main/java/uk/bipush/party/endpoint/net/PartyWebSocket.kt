@@ -69,7 +69,6 @@ class PartyWebSocket {
                     wrapper.partyMemberIds.map { id ->
                         inverse.entries.find { it.key.id == id }
                     }.filterNotNull().forEach {
-                        println("Pushing queued message to party member ${connections[it.value]?.account?.displayName}")
                         sendMessage(wrapper.message, it.value)
                     }
                     result.ack()
@@ -148,13 +147,11 @@ class PartyWebSocket {
 
     @OnWebSocketClose
     fun onClose(user: Session, statusCode: Int, reason: String) {
-        println("Use rdisconnected")
         connections.remove(user)
     }
 
     @OnWebSocketMessage
     fun onMessage(user: Session, message: String) {
-        println(message)
         val wsRequest: WSMessage = mapper.readValue(message)
         if (wsRequest.opcode == null || wsRequest.body == null) {
             return

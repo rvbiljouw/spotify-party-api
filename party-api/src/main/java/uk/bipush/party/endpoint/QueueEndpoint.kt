@@ -81,14 +81,13 @@ class QueueEndpoint {
         val token: LoginToken = req.attribute("account")
         val account = token.account!!
 
-
         val party = if (partyId != "active") Party.finder.byId(partyId.toLong()) else account.spotify?.activeParty
         if (party != null) {
             val request: QueueSongRequest = mapper.readValue(req.body())
 
             val entry =
-                    PartyQueue.queueSong(account, party, request.title, request.artist,
-                            request.duration, request.thumbnail, request.uri)
+                    PartyQueue.queueSong(account, party, request.songId, request.title, request.artist,
+                            request.duration, request.thumbnail, request.uri, request.uploadedBy)
 
             entry.response(false)
         } else {
@@ -142,6 +141,6 @@ class QueueEndpoint {
     }
 }
 
-data class QueueSongRequest(val artist: String, val title: String, val thumbnail: String, val uri: String, val duration: Int)
+data class QueueSongRequest(val songId: String, val artist: String, val title: String, val thumbnail: String, val uri: String, val duration: Int, val uploadedBy: String?)
 
 data class VoteSongRequest(val id: Long, val up: Boolean, val voteToSkip: Boolean)
