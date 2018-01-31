@@ -1,0 +1,83 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: awsumio-api
+spec:
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        deployVersion: "1.0"
+        prometheus.io/scrape: 'false'
+      labels:
+        app: awsumio-api
+    spec:
+      containers:
+        - image: gcr.io/awsumio-191915/party-api:1.0-SNAPSHOT
+          name: awsumio-api
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 10m
+              memory: 220M
+            limits:
+              cpu: 1000m
+              memory: 960M
+          env:
+            - name: API_HOST
+              value: http://api.awsum.io
+            - name: FRONTEND_HOST
+              value: http://awsum.io
+            - name: SPOTIFY_CLIENT_ID
+              value: 10a4963dcc5c472b8d5c52004d08cb43
+            - name: SPOTIFY_CLIENT_SECRET
+              value: cbabbc30e3aa46939524689d9421a808
+            - name: SLACK_CLIENT_ID
+              value: "194401792065.259741540464"
+            - name: SLACK_CLIENT_SECRET
+              value: c23c98e7536dc26c134851d28fc97fbb
+            - name: AWSUMIO_JDBC_STRING
+              value: jdbc:mysql://google:3306/awsumio?socketFactory=com.google.cloud.sql.mysql.SocketFactory&cloudSqlInstance=awsumio-191915:europe-west1:awsumio
+            - name: RMQ_URI
+              value: amqp://awsumio:2coMFP4NRYj7BBRwWwbXud@rabbitmq:5672
+            - name: NODE_HOSTNAME
+              valueFrom:
+               fieldRef:
+                 fieldPath: spec.nodeName
+            - name: GCP_PROJECT
+              value: awsumio-191915
+            - name: AWSUMIO_JDBC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cloudsql-credentials
+                  key: password
+            - name: AWSUMIO_JDBC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cloudsql-credentials
+                  key: user
+          ports:
+            - containerPort: 8080
+      volumes:
+        - name: ssl-certs
+          hostPath:
+            path: /etc/ssl/certs
+        - name: cloudsql-credentials
+          secret:
+            secretName: cloudsql-credentials
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: awsumio-api
+  labels:
+    app: awsumio-api
+spec:
+  selector:
+    app: awsumio-api
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  type: LoadBalancer
