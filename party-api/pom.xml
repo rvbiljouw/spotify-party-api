@@ -89,6 +89,13 @@
             <version>${spark.version}</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/com.kcthota/emoji4j -->
+        <dependency>
+            <groupId>com.kcthota</groupId>
+            <artifactId>emoji4j</artifactId>
+            <version>5.0</version>
+        </dependency>
+
         <dependency>
             <groupId>se.michaelthelin.spotify</groupId>
             <artifactId>spotify-web-api-java</artifactId>

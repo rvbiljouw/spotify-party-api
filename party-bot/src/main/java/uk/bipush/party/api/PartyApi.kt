@@ -53,6 +53,6 @@ object PartyApi {
     }
 }
 
-data class QueueSongRequest(val artist: String, val title: String, val thumbnail: String, val uri: String, val duration: Int)
+data class QueueSongRequest(val songId: String, val artist: String, val title: String, val thumbnail: String, val uri: String, val duration: Int, val uploadedBy: String?)
 
 data class CreatePartyRequest(val type: PartyType, val access: PartyAccess, val name: String, val description: String)

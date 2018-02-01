@@ -5,6 +5,7 @@ package uk.bipush.party
 import com.google.inject.AbstractModule
 import com.google.inject.Guice
 import com.google.inject.name.Names
+import emoji4j.EmojiUtils
 import io.ebean.EbeanServerFactory
 import io.ebean.config.ServerConfig
 import org.avaje.agentloader.AgentLoader

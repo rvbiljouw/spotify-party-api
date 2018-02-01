@@ -26,10 +26,7 @@ import uk.bipush.http.response.error
 import uk.bipush.http.response.response
 import uk.bipush.http.util.ValidatedRequest
 import uk.bipush.http.util.validate
-import uk.bipush.party.model.Account
-import uk.bipush.party.model.LoginToken
-import uk.bipush.party.model.LoginTokenStatus
-import uk.bipush.party.model.response
+import uk.bipush.party.model.*
 import java.io.File
 import java.util.*
 import javax.servlet.MultipartConfigElement
@@ -59,10 +56,12 @@ class AccountEndpoint {
     @field:Auth
     @field:Endpoint(method = HttpMethod.get, uri = "/api/v1/account/:id")
     val getAccountById = Route { req, res ->
+        val token: LoginToken = req.attribute("account")
+
         val idParam: Long = req.params(":id").toLong()
         val account = Account.finder.byId(idParam)
         if (account != null) {
-            account.response(withChildren = true, withLoginToken = false)
+            account.response(withChildren = true, withLoginToken = false, onlyPublic = account.id != token.account?.id)
         } else {
             res.status(404)
             mapOf("error" to "Account not found or no access to view.")
@@ -79,6 +78,7 @@ class AccountEndpoint {
                     this.email = createRequest.email
                     this.password = BCrypt.hashpw(createRequest.password, BCrypt.gensalt())
                     this.displayName = createRequest.displayName
+                    this.achievements = listOf(Achievement.getJoinedAchievement())
                 }
                 account.save()
 

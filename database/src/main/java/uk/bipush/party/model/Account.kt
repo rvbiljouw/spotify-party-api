@@ -95,13 +95,16 @@ class AccountResponse {
     var updated: Timestamp? = null
 }
 
-fun Account.response(withChildren: Boolean = false, withLoginToken: Boolean = false): AccountResponse {
+fun Account.response(withChildren: Boolean = false, withLoginToken: Boolean = false, onlyPublic: Boolean = false): AccountResponse {
     val self = this
     return AccountResponse().apply {
         this.id = self.id
+        if (!onlyPublic) {
+            this.email = self.email
+            this.subscription = self.subscription
+        }
+
         this.accountType = self.accountType
-        this.subscription = self.subscription
-        this.email = self.email
         this.displayName = self.displayName
         this.displayPicture = self.displayPicture
         this.created = self.created
@@ -110,7 +113,7 @@ fun Account.response(withChildren: Boolean = false, withLoginToken: Boolean = fa
         this.hasSpotify = self.hasSpotify
 
         if (withLoginToken) {
-            this.loginToken = self.loginToken?.response()
+            this.loginToken = self.loginToken?.response(false)
         }
 
         if (withChildren) {

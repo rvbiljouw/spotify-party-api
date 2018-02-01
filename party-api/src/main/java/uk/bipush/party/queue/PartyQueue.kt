@@ -1,5 +1,6 @@
 package uk.bipush.party.queue
 
+import emoji4j.EmojiUtils
 import org.joda.time.DateTime
 import uk.bipush.party.endpoint.net.ChatMessage
 import uk.bipush.party.endpoint.net.PartyWebSocket
@@ -41,12 +42,12 @@ class PartyQueue {
                 this.party = party
                 this.member = account
                 this.songId = songId
-                this.artist = artist
-                this.title = title
+                this.artist = EmojiUtils.htmlify(artist)
+                this.title = EmojiUtils.htmlify(title)
                 this.duration = duration
                 this.thumbnail = thumbnail
                 this.uri = uri
-                this.uploadedBy = uploadedBy
+                this.uploadedBy = EmojiUtils.htmlify(uploadedBy ?: "")
             }
 
             entry.save()

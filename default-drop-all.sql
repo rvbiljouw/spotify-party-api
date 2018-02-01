@@ -45,6 +45,8 @@ drop index ix_party_queue_vote_account_id on party_queue_vote;
 alter table party_queue_vote drop foreign key fk_party_queue_vote_entry_id;
 drop index ix_party_queue_vote_entry_id on party_queue_vote;
 
+alter table playlist_party drop foreign key fk_playlist_party_party_id;
+
 alter table spotify_account drop foreign key fk_spotify_account_active_party_id;
 drop index ix_spotify_account_active_party_id on spotify_account;
 
@@ -70,10 +72,14 @@ drop table if exists party_queue_entry;
 
 drop table if exists party_queue_vote;
 
+drop table if exists playlist_party;
+
 drop table if exists spotify_account;
 
 drop table if exists subscription;
 
 drop index ix_account_email on account;
+drop index ix_achievement_name on achievement;
 drop index ix_favourite_song_uri on favourite_song;
 drop index ix_party_member_active on party_member;
+drop index ix_playlist_party_playlist_id on playlist_party;

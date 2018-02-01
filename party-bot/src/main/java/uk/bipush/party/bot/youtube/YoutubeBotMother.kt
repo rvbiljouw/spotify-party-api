@@ -5,12 +5,17 @@ import com.google.api.client.http.HttpRequest
 import com.google.api.client.http.HttpRequestInitializer
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.services.youtube.YouTube
+import io.ebean.Expr
 import org.slf4j.LoggerFactory
+import uk.bipush.party.bot.BotMother
 import uk.bipush.party.model.Account
 import uk.bipush.party.model.AccountType
+import uk.bipush.party.model.PartyType
+import uk.bipush.party.model.PlaylistParty
+import uk.bipush.party.util.DBUtils
 import java.io.IOException
 
-class YouTubeMaster {
+class YoutubeBotMother: BotMother<YoutubePlaylistBot>(PartyType.YOUTUBE, BOT_EMAIL, BOT_DISPLAY_NAME) {
 
     val logger = LoggerFactory.getLogger(javaClass)
 
@@ -27,15 +32,31 @@ class YouTubeMaster {
         }).setApplicationName("awsumio").build()
     }
 
-    fun createBots(): List<YoutubePlaylistBot> {
+    override fun createBot(ownerId: String, playlistId: String): YoutubePlaylistBot? {
+        val resp = youtube.playlists().list("id,snippet")
+                .setKey(API_KEY)
+                .setId(playlistId)
+                .execute()
+
+        return if (resp.items.isNotEmpty()) {
+            YoutubePlaylistBot(resp.items[0], this)
+        } else {
+            null
+        }
+    }
+
+    override fun createNewBots(bots: MutableList<YoutubePlaylistBot>): List<YoutubePlaylistBot> {
         var nextToken: String? = null
-        val bots: MutableList<YoutubePlaylistBot> = mutableListOf()
 
         val limit = 300
 
         val account = getCreateBotAccount()
 
         while (true) {
+            if (bots.size == limit) {
+                break
+            }
+
             val req = youtube.playlists().list("id,snippet")
                     .setKey(API_KEY)
                     .setChannelId(MUSIC_CHANNEL_ID)
@@ -47,12 +68,20 @@ class YouTubeMaster {
 
             val resp = req.execute()
 
+            if (resp.items.size == 0) {
+                break
+            }
+
             nextToken = resp.nextPageToken
 
-            val newBots = resp.items.map { playlist ->
+            val existingBotIds = bots.map { "${it.getPlaylistId()}:${it.getPlaylistOwnerId()}" }.distinct()
+
+            val newBots = resp.items
+                    .filter {!existingBotIds.contains("${it.id}:${it.snippet.channelId}") }
+                    .map { playlist ->
                 YoutubePlaylistBot(
                         playlist,
-                        account
+                        this
                 )
             }
 
@@ -60,34 +89,11 @@ class YouTubeMaster {
 
             logger.info("Created ${newBots.size} new youtube playlist bots")
 
-            if (bots.size == limit) {
-                break
-            }
-
             if (nextToken == null) {
                 break
             }
         }
 
-        return bots.distinctBy { it.playlist.id }
-    }
-
-    private fun getCreateBotAccount(): Account {
-        var account = Account.finder.query().where()
-                .eq("email", BOT_EMAIL)
-                .eq("accountType", AccountType.BOT)
-                .findOne()
-
-        if (account == null) {
-            account = Account().apply {
-                this.email = BOT_EMAIL
-                this.accountType = AccountType.BOT
-                this.displayName = BOT_DISPLAY_NAME
-            }
-
-            account.save()
-        }
-
-        return account
+        return bots.distinctBy { "${it.getPlaylistId()}:${it.getPlaylistOwnerId()}" }
     }
 }

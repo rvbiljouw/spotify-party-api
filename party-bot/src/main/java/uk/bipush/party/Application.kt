@@ -7,7 +7,9 @@ import io.ebean.config.ServerConfig
 import org.avaje.agentloader.AgentLoader
 import org.avaje.datasource.DataSourceConfig
 import org.slf4j.LoggerFactory
-import uk.bipush.party.bot.youtube.YouTubeMaster
+import uk.bipush.party.bot.BotMother
+import uk.bipush.party.bot.spotify.SpotifyBotMother
+import uk.bipush.party.bot.youtube.YoutubeBotMother
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -55,12 +57,21 @@ fun main(args: Array<String>) {
     bootstrapEbean()
 
     val executorService = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors())
+    
+    val botTypes = System.getenv("BOT_TYPES").split(",")
 
-    val bots = YouTubeMaster().createBots()
+    val mothers = listOf(
+            if (botTypes.contains("SPOTIFY")) SpotifyBotMother() else null,
+            if (botTypes.contains("YOUTUBE")) YoutubeBotMother() else null
+    ).filterNotNull()
 
-    logger.info("Created youtube playlist bots")
+    mothers.forEach { mother ->
+        val bots = mother.createBots()
 
-    bots.forEach {
-        executorService.scheduleAtFixedRate(it, 0, 10L, TimeUnit.MINUTES)
+        bots.forEach { bot ->
+            executorService.scheduleAtFixedRate(bot, 0, 10L, TimeUnit.MINUTES)
+        }
     }
+
+    logger.info("Started up!")
 }

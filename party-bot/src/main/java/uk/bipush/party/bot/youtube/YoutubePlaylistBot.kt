@@ -9,17 +9,13 @@ import com.google.api.services.youtube.model.Playlist
 import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
 import com.google.common.cache.LoadingCache
-import uk.bipush.party.api.CreatePartyRequest
-import uk.bipush.party.api.PartyApi
 import uk.bipush.party.api.QueueSongRequest
 import uk.bipush.party.bot.Bot
-import uk.bipush.party.model.*
 import java.io.IOException
 import java.time.Duration
-import java.util.*
 import java.util.concurrent.TimeUnit
 
-class YoutubePlaylistBot(val playlist: Playlist, val account: Account) : Bot() {
+class YoutubePlaylistBot(val playlist: Playlist, botMother: YoutubeBotMother) : Bot(botMother) {
 
     companion object {
         val API_KEY = System.getenv("YOUTUBE_API_KEY")
@@ -50,36 +46,26 @@ class YoutubePlaylistBot(val playlist: Playlist, val account: Account) : Bot() {
                 })
     }
 
-    override fun getBotAccount(): Account {
-        return account
+    override fun getPlaylistId(): String {
+        return playlist.id
     }
 
-    override fun getBotParty(): Party {
-        var party = Party.finder.query().where()
-                .eq("name", playlist.snippet.title)
-                .eq("owner.accountType", AccountType.BOT)
-                .findOne()
+    override fun getPlaylistName(): String {
+        return playlist.snippet.title
+    }
 
-        val token = getToken()
+    override fun getPlaylistDescription(): String {
+        return playlist.snippet.description
+    }
 
-        if (party == null) {
-            party = PartyApi.createParty(
-                    token.token!!,
-                    CreatePartyRequest(
-                            PartyType.YOUTUBE,
-                            PartyAccess.PUBLIC,
-                            playlist.snippet.title, playlist.snippet.description
-                    )
-            )
-        }
-
-        return party
+    override fun getPlaylistOwnerId(): String {
+        return playlist.snippet.channelId
     }
 
     override fun getNextSongs(): Set<QueueSongRequest> {
         var nextToken: String? = null
 
-        val party = getBotParty()
+        val party = getCreateBotParty()
 
         val requests: MutableList<QueueSongRequest> = mutableListOf()
 
@@ -109,15 +95,8 @@ class YoutubePlaylistBot(val playlist: Playlist, val account: Account) : Bot() {
                 val url = "https://www.youtube.com/watch?v=$id"
                 val duration = durationCache.get(id) ?: 0
 
-                val entries = PartyQueueEntry.finder.query().where()
-                        .eq("party.id", party.id)
-                        .eq("uri", url)
-                        .`in`("status", listOf(PartyQueueEntryStatus.PLAYING, PartyQueueEntryStatus.IN_QUEUE))
-                        .setMaxRows(1)
-                        .findCount()
-
-                if (entries == 0) {
-                    QueueSongRequest(artist, title, thumbnail, url, duration.toInt())
+                if (shouldQueue(party, id)) {
+                    QueueSongRequest(id, artist, title, thumbnail, url, duration.toInt(), item.snippet.channelTitle)
                 } else null
             })
 

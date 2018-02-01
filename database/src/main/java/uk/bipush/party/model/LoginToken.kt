@@ -1,5 +1,6 @@
 package uk.bipush.party.model
 
+import com.sun.org.apache.xpath.internal.operations.Bool
 import io.ebean.Finder
 import io.ebean.Model
 import io.ebean.annotation.CreatedTimestamp
@@ -34,15 +35,15 @@ class LoginToken : Model() {
     var updated: DateTime? = null
 }
 
-class LoginTokenResponse(token: LoginToken) {
+class LoginTokenResponse(token: LoginToken, withAccount: Boolean = true) {
     var id: Long? = token.id
-    var account: AccountResponse? = token.account?.response()
+    var account: AccountResponse? = if (withAccount) token.account?.response() else null
     var status: LoginTokenStatus? = token.status
     var token: String? = token.token
     var created: DateTime? = null
     var updated: DateTime? = null
 }
 
-fun LoginToken.response(): LoginTokenResponse {
-    return LoginTokenResponse(this)
+fun LoginToken.response(withAccount: Boolean = true): LoginTokenResponse {
+    return LoginTokenResponse(this, withAccount)
 }

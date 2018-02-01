@@ -68,7 +68,7 @@ object SpotifyPartyManager : PartyManager {
             } else {
                 val queue = PartyQueue.forParty(party, 0, 2)
 
-                if (!queue.entries.isEmpty() || queue.nowPlaying != null) {
+                if (party.activeMemberCount > 0 && (!queue.entries.isEmpty() || queue.nowPlaying != null)) {
                     if (queue.nowPlaying == null || queue.nowPlaying?.status == PartyQueueEntryStatus.SKIPPED) {
                         val next = queue.entries.iterator().next()
 
