@@ -58,8 +58,8 @@ create table favourite_song (
   duration                      integer not null,
   preview_url                   varchar(255),
   uploaded_by                   varchar(255),
-  created                       datetime(6) not null,
-  updated                       datetime(6) not null,
+  created                       timestamp not null,
+  updated                       timestamp not null,
   constraint ck_favourite_song_type check ( type in ('YOUTUBE','SPOTIFY')),
   constraint pk_favourite_song primary key (id)
 );
