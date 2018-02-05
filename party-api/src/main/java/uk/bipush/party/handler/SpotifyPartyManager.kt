@@ -107,8 +107,10 @@ object SpotifyPartyManager : PartyManager {
                             executorService.schedule({ playNext(partyId) }, 1000L, TimeUnit.MILLISECONDS)
                         }
                     }
-                } else {
+                } else if (party.activeMemberCount > 0) {
                     executorService.schedule({ playNext(partyId) }, 1000L, TimeUnit.MILLISECONDS)
+                } else {
+                    managedParties.removeIf { it == party.id }
                 }
             }
         }

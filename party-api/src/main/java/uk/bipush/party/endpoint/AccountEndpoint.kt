@@ -12,6 +12,7 @@ import com.google.cloud.storage.Storage
 import com.google.cloud.storage.StorageOptions
 import com.google.common.hash.Hashing
 import com.google.common.io.Files
+import io.ebean.Ebean
 import org.hibernate.validator.constraints.Email
 import org.hibernate.validator.constraints.Length
 import org.hibernate.validator.constraints.NotEmpty
@@ -155,6 +156,108 @@ class AccountEndpoint {
         account.save()
 
         account.response()
+    }
+
+    @field:Auth
+    @field:Endpoint(method = HttpMethod.put, uri = "/api/v1/account/:id/follow")
+    val follow = Route { req, res ->
+        val token: LoginToken = req.attribute("account")
+        val account = token.account!!
+
+        val toFollow = Account.finder.byId(req.params(":id")?.toLong() ?: 0)
+
+        if (toFollow == null) {
+            res.error(Errors.notFound)
+        } else {
+
+            if (Follower.finder.query().where()
+                            .eq("following.id", toFollow.id)
+                            .eq("follower.id", account.id)
+                            .findCount() > 0) {
+                res.error(Errors.conflict)
+            } else {
+                val follower = Follower().apply {
+                    this.following = toFollow
+                    this.follower = account
+                }
+
+                follower.save()
+
+                follower.response()
+            }
+        }
+    }
+
+    @field:Auth
+    @field:Endpoint(method = HttpMethod.delete, uri = "/api/v1/account/:id/follow")
+    val unfollow = Route { req, res ->
+        val token: LoginToken = req.attribute("account")
+        val account = token.account!!
+
+        val toFollow = Account.finder.byId(req.params(":id")?.toLong() ?: 0)
+
+        if (toFollow == null) {
+            res.error(Errors.notFound)
+        } else {
+            val follower = Follower.finder.query().where()
+                            .eq("following.id", toFollow.id)
+                            .eq("follower.id", account.id).findOne()
+            if (follower != null) {
+                follower.delete()
+
+                follower.response()
+            } else {
+                res.error(Errors.notFound)
+            }
+        }
+    }
+
+    @field:Auth
+    @field:Endpoint(method = HttpMethod.get, uri = "/api/v1/account/:id/following")
+    val isFollowing = Route { req, res ->
+        val token: LoginToken = req.attribute("account")
+        val account = token.account!!
+
+        val toFollow = Account.finder.byId(req.params(":id")?.toLong() ?: 0)
+
+        if (toFollow == null) {
+            res.error(Errors.notFound)
+        } else {
+
+            if (Follower.finder.query().where()
+                            .eq("following.id", toFollow.id)
+                            .eq("follower.id", account.id)
+                            .findCount() > 0) {
+                mapOf("following" to true)
+            } else {
+                mapOf("following" to false)
+            }
+        }
+    }
+
+    @field:Auth
+    @field:Endpoint(method = HttpMethod.get, uri = "/api/v1/account/:id/followers")
+    val getFollowers = Route { req, res ->
+        val account = Account.finder.byId(req.params(":id")?.toLong() ?: 0)
+
+        val limit = req.queryParams("limit")?.toInt()
+        val offset = req.queryParams("offset")?.toInt()
+
+        if (account == null) {
+            res.error(Errors.notFound)
+        } else {
+            val results = Follower.finder.query()
+                    .where().eq("following.id", account.id)
+                    .setFirstRow(offset ?: 0)
+                    .setMaxRows(limit ?: 25)
+                    .findPagedList()
+
+            results.loadCount()
+
+            res.header("X-Max-Records", results.totalCount.toString())
+            res.header("X-Offset", (offset ?: 0).toString())
+            results.list.mapNotNull { x -> x.follower?.response(false ,false) }
+        }
     }
 
 }

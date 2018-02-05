@@ -18,6 +18,12 @@ drop index ix_account_link_account_id on account_link;
 alter table favourite_song drop foreign key fk_favourite_song_account_id;
 drop index ix_favourite_song_account_id on favourite_song;
 
+alter table follower drop foreign key fk_follower_follower_id;
+drop index ix_follower_follower_id on follower;
+
+alter table follower drop foreign key fk_follower_following_id;
+drop index ix_follower_following_id on follower;
+
 alter table login_token drop foreign key fk_login_token_account_id;
 drop index ix_login_token_account_id on login_token;
 
@@ -61,6 +67,8 @@ drop table if exists account_link;
 drop table if exists achievement;
 
 drop table if exists favourite_song;
+
+drop table if exists follower;
 
 drop table if exists login_token;
 

@@ -64,6 +64,15 @@ create table favourite_song (
   constraint pk_favourite_song primary key (id)
 );
 
+create table follower (
+  id                            bigint auto_increment not null,
+  follower_id                   bigint,
+  following_id                  bigint,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
+  constraint pk_follower primary key (id)
+);
+
 create table login_token (
   id                            bigint auto_increment not null,
   account_id                    bigint,
@@ -206,6 +215,12 @@ create index ix_account_link_account_id on account_link (account_id);
 
 alter table favourite_song add constraint fk_favourite_song_account_id foreign key (account_id) references account (id) on delete restrict on update restrict;
 create index ix_favourite_song_account_id on favourite_song (account_id);
+
+alter table follower add constraint fk_follower_follower_id foreign key (follower_id) references account (id) on delete restrict on update restrict;
+create index ix_follower_follower_id on follower (follower_id);
+
+alter table follower add constraint fk_follower_following_id foreign key (following_id) references account (id) on delete restrict on update restrict;
+create index ix_follower_following_id on follower (following_id);
 
 alter table login_token add constraint fk_login_token_account_id foreign key (account_id) references account (id) on delete restrict on update restrict;
 create index ix_login_token_account_id on login_token (account_id);

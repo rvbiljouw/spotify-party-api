@@ -85,6 +85,7 @@ class AccountResponse {
     var accountType: AccountType? = null
     var subscription: Subscription? = null
     var achievements: List<Achievement>? = null
+    var followers: List<AccountResponse>? = null
     var email: String? = null
     var displayName: String? = null
     var displayPicture: String? = null
