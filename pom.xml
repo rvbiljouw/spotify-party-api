@@ -5,14 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>uk.bipush</groupId>
-    <artifactId>spotify-party-api</artifactId>
+    <artifactId>spotify-party</artifactId>
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <modules>
+        <module>database</module>
+        <module>party-api</module>
         <module>party-manager</module>
         <module>party-bot</module>
-        <module>party-api</module>
-        <module>database</module>
         <module>queue-lib</module>
     </modules>
 
