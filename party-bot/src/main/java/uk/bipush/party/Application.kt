@@ -57,7 +57,7 @@ fun main(args: Array<String>) {
     bootstrapEbean()
 
     val executorService = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors())
-    
+
     val botTypes = System.getenv("BOT_TYPES").split(",")
 
     val mothers = listOf(
@@ -74,4 +74,9 @@ fun main(args: Array<String>) {
     }
 
     logger.info("Started up!")
+
+    val lock = Object()
+    synchronized(lock, {
+        lock.wait()
+    })
 }

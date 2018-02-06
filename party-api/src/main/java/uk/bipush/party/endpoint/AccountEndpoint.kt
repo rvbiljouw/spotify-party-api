@@ -47,7 +47,7 @@ class AccountEndpoint {
     val getAccount = Route { req, res ->
         val token: LoginToken = req.attribute("account")
         if (token.account != null) {
-            token.account?.response(withChildren = false, withLoginToken = true)
+            token.account?.response(withChildren = true, withLoginToken = true)
         } else {
             res.status(403)
             mapOf("error" to "You're not logged in.")
@@ -62,7 +62,7 @@ class AccountEndpoint {
         val idParam: Long = req.params(":id").toLong()
         val account = Account.finder.byId(idParam)
         if (account != null) {
-            account.response(withChildren = true, withLoginToken = false, onlyPublic = account.id != token.account?.id)
+            account.response(withChildren = token.account?.id == idParam, withLoginToken = false, onlyPublic = account.id != token.account?.id)
         } else {
             res.status(404)
             mapOf("error" to "Account not found or no access to view.")
@@ -97,7 +97,7 @@ class AccountEndpoint {
 
                 req.session(true).attribute("token", account.loginToken!!.token)
 
-                account.response(false, true)
+                account.response(true, true)
             } else {
                 res.error(Errors.conflict, "E-mail address is already registered.")
             }
@@ -131,7 +131,7 @@ class AccountEndpoint {
 
                 account.update()
 
-                account.response(false, true)
+                account.response(true, true)
             }
         } else {
             res.error(Errors.badRequest, errors.map { it.response() })
@@ -155,7 +155,7 @@ class AccountEndpoint {
         account.displayPicture = blob.mediaLink
         account.save()
 
-        account.response()
+        account.response(true, true)
     }
 
     @field:Auth

@@ -18,6 +18,8 @@ class SpotifyBotMother : BotMother<SpotifyPlaylistBot>(PartyType.SPOTIFY, BOT_EM
         val BOT_EMAIL = "spotify-playlist-bot@bot.awsum.io"
         val BOT_DISPLAY_NAME = "Spotify Bot"
 
+        val BOT_LIMIT = System.getenv("SPOTIFY_BOTS")?.toInt() ?: 50
+
         val SPOTIFY_CLIENT = Api.builder()
                 .clientId(CLIENT_ID)
                 .clientSecret(CLIENT_SECRET)
@@ -47,10 +49,8 @@ class SpotifyBotMother : BotMother<SpotifyPlaylistBot>(PartyType.SPOTIFY, BOT_EM
     override fun createNewBots(bots: MutableList<SpotifyPlaylistBot>): List<SpotifyPlaylistBot> {
         var offfset: Int = 0
 
-        val limit = 300
-
         while (true) {
-            if (bots.size == limit) {
+            if (bots.size == BOT_LIMIT) {
                 break
             }
 

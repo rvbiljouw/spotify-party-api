@@ -25,6 +25,8 @@ class YoutubeBotMother: BotMother<YoutubePlaylistBot>(PartyType.YOUTUBE, BOT_EMA
         val BOT_EMAIL = "yt-playlist-bot@bot.awsum.io"
         val BOT_DISPLAY_NAME = "YouTube Bot"
 
+        val BOT_LIMIT = System.getenv("YOUTUBE_BOTS")?.toInt() ?: 50
+
         private val youtube = YouTube.Builder(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(), object : HttpRequestInitializer {
             @Throws(IOException::class)
             override fun initialize(request: HttpRequest) {
@@ -48,12 +50,10 @@ class YoutubeBotMother: BotMother<YoutubePlaylistBot>(PartyType.YOUTUBE, BOT_EMA
     override fun createNewBots(bots: MutableList<YoutubePlaylistBot>): List<YoutubePlaylistBot> {
         var nextToken: String? = null
 
-        val limit = 300
-
         val account = getCreateBotAccount()
 
         while (true) {
-            if (bots.size == limit) {
+            if (bots.size == BOT_LIMIT) {
                 break
             }
 
