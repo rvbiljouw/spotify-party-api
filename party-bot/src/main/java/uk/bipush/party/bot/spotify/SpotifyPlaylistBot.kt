@@ -27,9 +27,12 @@ class SpotifyPlaylistBot(val playlist: Playlist, botMother: SpotifyBotMother): B
 
         var offfset = 0
 
+        val limit = 50
+
         val requests: MutableList<QueueSongRequest> = mutableListOf()
 
         while (true) {
+            println(offfset)
             val page = SpotifyBotMother.SPOTIFY_CLIENT
                     .getPlaylistTracks(getPlaylistOwnerId(), getPlaylistId())
                     .offset(offfset)
@@ -37,9 +40,10 @@ class SpotifyPlaylistBot(val playlist: Playlist, botMother: SpotifyBotMother): B
                     .build()
                     .get()
 
-            if (page.items.size == 0) {
+            if (page.items.size == 0 || requests.size >= limit) {
                 break
             }
+            println(page.items[0].track.id)
 
             requests.addAll(page.items.mapNotNull { item ->
                 val id = item.track.id
@@ -56,6 +60,8 @@ class SpotifyPlaylistBot(val playlist: Playlist, botMother: SpotifyBotMother): B
 
             offfset += page.items.size
         }
+
+        println(requests)
 
         return requests.distinctBy { it.uri }.toSet()
     }

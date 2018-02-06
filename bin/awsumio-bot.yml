@@ -39,7 +39,7 @@ spec:
             - name: YOUTUBE_BOTS
               value: "5"
             - name: BOT_TYPES
-              value: "SPOTIFY,YOUTUBE"
+              value: "SPOTIFY"
             - name: SLACK_CLIENT_ID
               value: "194401792065.259741540464"
             - name: SLACK_CLIENT_SECRET

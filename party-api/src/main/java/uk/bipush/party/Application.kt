@@ -73,6 +73,7 @@ fun main(args: Array<String>) {
             QueueEndpoint::class.java,
             SlackEndpoint::class.java,
             SpotifyEndpoint::class.java,
+            NotificationEndpoint::class.java,
             YouTubeEndpoint::class.java,
             FavouriteEndpoint::class.java)
     val injector = Guice.createInjector(object : AbstractModule() {

@@ -42,12 +42,12 @@ class PartyQueue {
                 this.party = party
                 this.member = account
                 this.songId = songId
-                this.artist = EmojiUtils.htmlify(artist)
-                this.title = EmojiUtils.htmlify(title)
+                this.artist = EmojiUtils.htmlify(artist).take(255)
+                this.title = EmojiUtils.htmlify(title).take(255)
                 this.duration = duration
                 this.thumbnail = thumbnail
                 this.uri = uri
-                this.uploadedBy = EmojiUtils.htmlify(uploadedBy ?: "")
+                this.uploadedBy = EmojiUtils.htmlify(uploadedBy ?: "").take(255)
             }
 
             entry.save()

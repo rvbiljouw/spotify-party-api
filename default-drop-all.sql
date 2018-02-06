@@ -27,6 +27,12 @@ drop index ix_follower_following_id on follower;
 alter table login_token drop foreign key fk_login_token_account_id;
 drop index ix_login_token_account_id on login_token;
 
+alter table notification drop foreign key fk_notification_account_id;
+drop index ix_notification_account_id on notification;
+
+alter table notification drop foreign key fk_notification_interacting_account_id;
+drop index ix_notification_interacting_account_id on notification;
+
 alter table party drop foreign key fk_party_owner_id;
 drop index ix_party_owner_id on party;
 
@@ -72,6 +78,8 @@ drop table if exists follower;
 
 drop table if exists login_token;
 
+drop table if exists notification;
+
 drop table if exists party;
 
 drop table if exists party_member;
@@ -89,5 +97,7 @@ drop table if exists subscription;
 drop index ix_account_email on account;
 drop index ix_achievement_name on achievement;
 drop index ix_favourite_song_uri on favourite_song;
+drop index ix_notification_action on notification;
+drop index ix_notification_read on notification;
 drop index ix_party_member_active on party_member;
 drop index ix_playlist_party_playlist_id on playlist_party;

@@ -68,49 +68,57 @@ object SpotifyPartyManager : PartyManager {
             } else {
                 val queue = PartyQueue.forParty(party, 0, 2)
 
-                if (party.activeMemberCount > 0 && (!queue.entries.isEmpty() || queue.nowPlaying != null)) {
-                    if (queue.nowPlaying == null || queue.nowPlaying?.status == PartyQueueEntryStatus.SKIPPED) {
-                        val next = queue.entries.iterator().next()
+                if (queue.entries.isEmpty() && queue.nowPlaying == null && party.nowPlaying != null) {
+                    party.nowPlaying = null
 
-                        val accounts = party.members.filter { account -> account.active }
-                        playSong(accounts, next, 0)
+                    party.update()
 
-                        val now = System.currentTimeMillis()
+                    managedParties.removeIf { it == party.id }
+                } else {
+                    if (party.activeMemberCount > 0 && (!queue.entries.isEmpty() || queue.nowPlaying != null)) {
+                        if (queue.nowPlaying == null || queue.nowPlaying?.status == PartyQueueEntryStatus.SKIPPED) {
+                            val next = queue.entries.iterator().next()
 
-                        next.playedAt = now
-                        next.status = PartyQueueEntryStatus.PLAYING
+                            val accounts = party.members.filter { account -> account.active }
+                            playSong(accounts, next, 0)
 
-                        next.update()
+                            val now = System.currentTimeMillis()
 
-                        try {
-                            party.nowPlaying = next
+                            next.playedAt = now
+                            next.status = PartyQueueEntryStatus.PLAYING
 
-                            party.update()
-                        } catch (t: Throwable) {
-                            t.printStackTrace()
-                        }
+                            next.update()
 
-                        PartyWebSocket.sendQueueUpdate(queue, party.members)
+                            try {
+                                party.nowPlaying = next
 
-                        executorService.schedule({ playNext(partyId) }, next.duration.toLong() + 1000, TimeUnit.MILLISECONDS)
-                    } else {
-                        val nowPlaying = queue.nowPlaying!!
-
-                        if (nowPlaying.playedAt + nowPlaying.duration <= System.currentTimeMillis()) {
-                            nowPlaying.status = PartyQueueEntryStatus.PLAYED
-                            nowPlaying.update()
+                                party.update()
+                            } catch (t: Throwable) {
+                                t.printStackTrace()
+                            }
 
                             PartyWebSocket.sendQueueUpdate(queue, party.members)
 
-                            playNext(partyId)
+                            executorService.schedule({ playNext(partyId) }, next.duration.toLong() + 1000, TimeUnit.MILLISECONDS)
                         } else {
-                            executorService.schedule({ playNext(partyId) }, 1000L, TimeUnit.MILLISECONDS)
+                            val nowPlaying = queue.nowPlaying!!
+
+                            if (nowPlaying.playedAt + nowPlaying.duration <= System.currentTimeMillis()) {
+                                nowPlaying.status = PartyQueueEntryStatus.PLAYED
+                                nowPlaying.update()
+
+                                PartyWebSocket.sendQueueUpdate(queue, party.members)
+
+                                playNext(partyId)
+                            } else {
+                                executorService.schedule({ playNext(partyId) }, 1000L, TimeUnit.MILLISECONDS)
+                            }
                         }
+                    } else if (party.activeMemberCount > 0) {
+                        executorService.schedule({ playNext(partyId) }, 1000L, TimeUnit.MILLISECONDS)
+                    } else {
+                        managedParties.removeIf { it == party.id }
                     }
-                } else if (party.activeMemberCount > 0) {
-                    executorService.schedule({ playNext(partyId) }, 1000L, TimeUnit.MILLISECONDS)
-                } else {
-                    managedParties.removeIf { it == party.id }
                 }
             }
         }

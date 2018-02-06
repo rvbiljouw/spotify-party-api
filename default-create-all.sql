@@ -58,8 +58,8 @@ create table favourite_song (
   duration                      integer not null,
   preview_url                   varchar(255),
   uploaded_by                   varchar(255),
-  created                       timestamp not null,
-  updated                       timestamp not null,
+  created                       datetime(6) not null,
+  updated                       datetime(6) not null,
   constraint ck_favourite_song_type check ( type in ('YOUTUBE','SPOTIFY')),
   constraint pk_favourite_song primary key (id)
 );
@@ -85,6 +85,18 @@ create table login_token (
   updated                       datetime(6) not null,
   constraint ck_login_token_status check ( status in ('ACTIVE','EXPIRED')),
   constraint pk_login_token primary key (id)
+);
+
+create table notification (
+  id                            bigint auto_increment not null,
+  account_id                    bigint,
+  interacting_account_id        bigint,
+  text                          varchar(255),
+  action                        varchar(8),
+  `read`                          tinyint(1) default 0 not null,
+  created                       datetime(6) not null,
+  constraint ck_notification_action check ( action in ('FOLLOWED')),
+  constraint pk_notification primary key (id)
 );
 
 create table party (
@@ -194,6 +206,8 @@ create table subscription (
 create index ix_account_email on account (email);
 create index ix_achievement_name on achievement (name);
 create index ix_favourite_song_uri on favourite_song (uri);
+create index ix_notification_action on notification (action);
+create index ix_notification_read on notification (read);
 create index ix_party_member_active on party_member (active);
 create index ix_playlist_party_playlist_id on playlist_party (playlist_id);
 alter table account add constraint fk_account_subscription_id foreign key (subscription_id) references subscription (id) on delete restrict on update restrict;
@@ -224,6 +238,12 @@ create index ix_follower_following_id on follower (following_id);
 
 alter table login_token add constraint fk_login_token_account_id foreign key (account_id) references account (id) on delete restrict on update restrict;
 create index ix_login_token_account_id on login_token (account_id);
+
+alter table notification add constraint fk_notification_account_id foreign key (account_id) references account (id) on delete restrict on update restrict;
+create index ix_notification_account_id on notification (account_id);
+
+alter table notification add constraint fk_notification_interacting_account_id foreign key (interacting_account_id) references account (id) on delete restrict on update restrict;
+create index ix_notification_interacting_account_id on notification (interacting_account_id);
 
 alter table party add constraint fk_party_owner_id foreign key (owner_id) references account (id) on delete restrict on update restrict;
 create index ix_party_owner_id on party (owner_id);

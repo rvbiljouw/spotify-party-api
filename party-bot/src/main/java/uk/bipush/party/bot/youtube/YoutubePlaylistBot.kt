@@ -65,6 +65,8 @@ class YoutubePlaylistBot(val playlist: Playlist, botMother: YoutubeBotMother) : 
     override fun getNextSongs(): Set<QueueSongRequest> {
         var nextToken: String? = null
 
+        val limit = 50
+
         val party = getCreateBotParty()
 
         val requests: MutableList<QueueSongRequest> = mutableListOf()
@@ -75,7 +77,7 @@ class YoutubePlaylistBot(val playlist: Playlist, botMother: YoutubeBotMother) : 
                     .setKey(API_KEY)
                     .setMaxResults(50)
 
-            if (nextToken != null) {
+            if (nextToken != null || requests.size >= limit) {
                 req.pageToken = nextToken
             }
 

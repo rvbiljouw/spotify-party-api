@@ -63,22 +63,27 @@ abstract class Bot(val botMother: BotMother<*>): Runnable {
 
         return entries == 0
     }
+
     override fun run() {
-        val party = getCreateBotParty()
+        try {
+            val party = getCreateBotParty()
 
-        logger.info("[${party.name}] Bot loop running")
+            logger.info("[${party.name}] Bot loop running")
 
-        val token = getToken()
+            val token = getToken()
 
-        val next = getNextSongs()
+            val next = getNextSongs()
 
-        logger.info("[${party.name}] Queueing ${next.size} songs")
-        next.forEach { req ->
-            val result = PartyApi.queueSong(token.token!!, party, req)
+            logger.info("[${party.name}] Queueing ${next.size} songs")
+            next.forEach { req ->
+                val result = PartyApi.queueSong(token.token!!, party, req)
 
-            if (!result) {
-                logger.warn("[${party.name}] Failed to queue song")
+                if (!result) {
+                    logger.warn("[${party.name}] Failed to queue song")
+                }
             }
+        } catch (e: Error) {
+            logger.error("Error running bot loop", e)
         }
     }
 
