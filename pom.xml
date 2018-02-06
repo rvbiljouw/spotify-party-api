@@ -89,24 +89,6 @@
                 </dependencies>
             </plugin>
             <plugin>
-                <groupId>io.ebean</groupId>
-                <artifactId>ebean-maven-plugin</artifactId>
-                <version>10.1.4</version>
-                <executions>
-                    <execution>
-                        <id>main</id>
-                        <phase>process-classes</phase>
-                        <configuration>
-                            <transformArgs>debug=1</transformArgs>
-                        </configuration>
-                        <goals>
-                            <goal>enhance</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>2.5.1</version>
