@@ -1,6 +1,7 @@
 package uk.bipush.party.model
 
 import io.ebean.Finder
+import io.ebean.Model
 import io.ebean.annotation.CreatedTimestamp
 import io.ebean.annotation.Index
 import io.ebean.annotation.UpdatedTimestamp
@@ -9,12 +10,25 @@ import javax.persistence.Entity
 import javax.persistence.Id
 
 @Entity
-class Achievement {
+class Achievement: Model() {
 
     companion object {
         val finder: Finder<Long, Achievement> = Finder(Achievement::class.java)
 
-        fun getJoinedAchievement(): Achievement = finder.query().where().eq("name", "Joined").findOne()!!
+        fun getJoinedAchievement(): Achievement {
+            var achievement = finder.query().where().eq("name", "Joined").findOne()
+            if (achievement == null) {
+                achievement = Achievement().apply {
+                    this.name = "Joined"
+                    this.description = "Awarded when a user signs up"
+                    this.badgeUrl = "https://i.imgur.com/eXwddgV.png"
+                }
+
+                achievement.save()
+            }
+
+            return achievement
+        }
     }
 
     @Id

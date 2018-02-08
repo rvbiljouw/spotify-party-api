@@ -45,7 +45,7 @@ private fun bootstrapEbean() {
         this.password = System.getenv("AWSUMIO_JDBC_PASSWORD")
     }
     config.dataSourceConfig = datasourceConfig
-    config.isDdlGenerate = true
+    config.isDdlGenerate = false
     config.isDdlRun = false
     config.isDefaultServer = true
 
