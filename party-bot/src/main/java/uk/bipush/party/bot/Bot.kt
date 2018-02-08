@@ -75,13 +75,18 @@ abstract class Bot(val botMother: BotMother<*>): Runnable {
             val next = getNextSongs()
 
             logger.info("[${party.name}] Queueing ${next.size} songs")
-            next.forEach { req ->
+            val count = next.mapNotNull { req ->
                 val result = PartyApi.queueSong(token.token!!, party, req)
 
                 if (!result) {
                     logger.warn("[${party.name}] Failed to queue song")
+                    null
+                } else {
+                    Any()
                 }
-            }
+            }.size
+
+            logger.info("[${party.name}] Queued ${next.size} songs")
         } catch (e: Error) {
             logger.error("Error running bot loop", e)
         }

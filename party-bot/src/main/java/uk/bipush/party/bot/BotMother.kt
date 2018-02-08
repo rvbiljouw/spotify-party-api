@@ -6,7 +6,7 @@ import uk.bipush.party.model.PartyType
 import uk.bipush.party.model.PlaylistParty
 import uk.bipush.party.util.DBUtils
 
-abstract class BotMother<T : Bot>(val type: PartyType, val botEmail: String, val botDisplayName: String) {
+abstract class BotMother<T : Bot>(val type: PartyType, val botEmail: String, val botDisplayName: String, val botLimit: Int) {
 
     abstract fun createBot(ownerId: String, playlistId: String): T?
 
@@ -25,13 +25,17 @@ abstract class BotMother<T : Bot>(val type: PartyType, val botEmail: String, val
                         .eq("party.owner.accountType", AccountType.BOT)
                         .orderBy("id asc"),
                 { parties ->
-                    bots.addAll(parties
+                    parties
                             .filter { it.playlistId != null && it.playlistOwnerId != null }
                             .mapNotNull {
                                 createBot(it.playlistOwnerId!!, it.playlistId!!)
-                            })
+                            }.forEach {
+                                if (bots.size < botLimit) {
+                                    bots.add(it)
+                                }
+                            }
 
-                    true
+                    bots.size < botLimit
                 },
                 0,
                 50

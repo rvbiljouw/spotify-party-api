@@ -21,8 +21,8 @@ spec:
               cpu: 200m
               memory: 220M
             limits:
-              cpu: 1000m
-              memory: 960M
+              cpu: 3000m
+              memory: 1260M
           env:
             - name: API_HOST
               value: http://api.awsum.io

@@ -35,11 +35,11 @@ spec:
             - name: YOUTUBE_API_KEY
               value: AIzaSyBgXbYKZu6LFpJ7J8bbC-FRLsPhGOflUrk
             - name: SPOTIFY_BOTS
-              value: "5"
+              value: "50"
             - name: YOUTUBE_BOTS
-              value: "5"
+              value: "50"
             - name: BOT_TYPES
-              value: "SPOTIFY"
+              value: "SPOTIFY,YOUTUBE"
             - name: SLACK_CLIENT_ID
               value: "194401792065.259741540464"
             - name: SLACK_CLIENT_SECRET

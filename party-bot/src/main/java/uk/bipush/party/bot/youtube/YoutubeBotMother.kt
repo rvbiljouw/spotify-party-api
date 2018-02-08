@@ -15,7 +15,7 @@ import uk.bipush.party.model.PlaylistParty
 import uk.bipush.party.util.DBUtils
 import java.io.IOException
 
-class YoutubeBotMother: BotMother<YoutubePlaylistBot>(PartyType.YOUTUBE, BOT_EMAIL, BOT_DISPLAY_NAME) {
+class YoutubeBotMother: BotMother<YoutubePlaylistBot>(PartyType.YOUTUBE, BOT_EMAIL, BOT_DISPLAY_NAME, BOT_LIMIT) {
 
     val logger = LoggerFactory.getLogger(javaClass)
 

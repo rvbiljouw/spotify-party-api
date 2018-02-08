@@ -100,7 +100,7 @@ class YoutubePlaylistBot(val playlist: Playlist, botMother: YoutubeBotMother) : 
                 if (shouldQueue(party, id)) {
                     QueueSongRequest(id, artist, title, thumbnail, url, duration.toInt(), item.snippet.channelTitle)
                 } else null
-            })
+            }.take(limit - requests.size))
 
             if (nextToken == null) {
                 break

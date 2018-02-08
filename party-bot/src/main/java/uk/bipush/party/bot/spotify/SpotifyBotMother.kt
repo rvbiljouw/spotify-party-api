@@ -1,11 +1,12 @@
 package uk.bipush.party.bot.spotify
 
-import com.wrapper.spotify.Api
+import com.wrapper.spotify.SpotifyApi
 import org.slf4j.LoggerFactory
 import uk.bipush.party.bot.BotMother
 import uk.bipush.party.model.PartyType
+import java.net.URL
 
-class SpotifyBotMother : BotMother<SpotifyPlaylistBot>(PartyType.SPOTIFY, BOT_EMAIL, BOT_DISPLAY_NAME) {
+class SpotifyBotMother : BotMother<SpotifyPlaylistBot>(PartyType.SPOTIFY, BOT_EMAIL, BOT_DISPLAY_NAME, BOT_LIMIT) {
 
     val logger = LoggerFactory.getLogger(javaClass)
 
@@ -20,10 +21,10 @@ class SpotifyBotMother : BotMother<SpotifyPlaylistBot>(PartyType.SPOTIFY, BOT_EM
 
         val BOT_LIMIT = System.getenv("SPOTIFY_BOTS")?.toInt() ?: 50
 
-        val SPOTIFY_CLIENT = Api.builder()
-                .clientId(CLIENT_ID)
-                .clientSecret(CLIENT_SECRET)
-                .redirectURI("${API_HOST}/callback")
+        val SPOTIFY_CLIENT = SpotifyApi.builder()
+                .setClientId(CLIENT_ID)
+                .setClientSecret(CLIENT_SECRET)
+                .setRedirectUri(URL("${API_HOST}/callback").toURI())
                 .build()
     }
 
@@ -32,12 +33,12 @@ class SpotifyBotMother : BotMother<SpotifyPlaylistBot>(PartyType.SPOTIFY, BOT_EM
     }
 
     fun refreshToken() {
-        val creds = SPOTIFY_CLIENT.clientCredentialsGrant().build().get()
+        val creds = SPOTIFY_CLIENT.clientCredentials().build().execute()
         SPOTIFY_CLIENT.setAccessToken(creds.accessToken)
     }
 
     override fun createBot(ownerId: String, playlistId: String): SpotifyPlaylistBot? {
-        val spotifyPlaylist = SPOTIFY_CLIENT.getPlaylist(ownerId, playlistId).build().get()
+        val spotifyPlaylist = SPOTIFY_CLIENT.getPlaylist(ownerId, playlistId).build().execute()
 
         return if (spotifyPlaylist != null) {
             SpotifyPlaylistBot(spotifyPlaylist, this)
@@ -54,7 +55,7 @@ class SpotifyBotMother : BotMother<SpotifyPlaylistBot>(PartyType.SPOTIFY, BOT_EM
                 break
             }
 
-            val playlists = SPOTIFY_CLIENT.featuredPlaylists.offset(offfset).build().get().playlists
+            val playlists = SPOTIFY_CLIENT.listOfFeaturedPlaylists.offset(offfset).build().execute().playlists
 
             if (playlists.items.size == 0) {
                 break

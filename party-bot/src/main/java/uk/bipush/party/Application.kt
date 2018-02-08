@@ -56,7 +56,11 @@ fun main(args: Array<String>) {
 
     bootstrapEbean()
 
-    val executorService = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors())
+    val poolSize = Runtime.getRuntime().availableProcessors()
+
+    logger.info("Starting up with ${poolSize} threads")
+
+    val executorService = Executors.newScheduledThreadPool(poolSize)
 
     val botTypes = System.getenv("BOT_TYPES").split(",")
 

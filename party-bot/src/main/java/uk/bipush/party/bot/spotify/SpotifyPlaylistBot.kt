@@ -1,6 +1,6 @@
 package uk.bipush.party.bot.spotify
 
-import com.wrapper.spotify.models.Playlist
+import com.wrapper.spotify.model_objects.specification.Playlist
 import uk.bipush.party.api.QueueSongRequest
 import uk.bipush.party.bot.Bot
 
@@ -32,36 +32,33 @@ class SpotifyPlaylistBot(val playlist: Playlist, botMother: SpotifyBotMother): B
         val requests: MutableList<QueueSongRequest> = mutableListOf()
 
         while (true) {
-            println(offfset)
             val page = SpotifyBotMother.SPOTIFY_CLIENT
-                    .getPlaylistTracks(getPlaylistOwnerId(), getPlaylistId())
+                    .getPlaylistsTracks(getPlaylistOwnerId(), getPlaylistId())
                     .offset(offfset)
                     .limit(50)
                     .build()
-                    .get()
+                    .execute()
 
             if (page.items.size == 0 || requests.size >= limit) {
                 break
             }
-            println(page.items[0].track.id)
 
-            requests.addAll(page.items.mapNotNull { item ->
-                val id = item.track.id
-                val title = item.track.name
-                val url = item.track.uri
-                val artist = item.track.artists.joinToString { it.name }
-                val thumbnail = item.track.album?.images?.firstOrNull()?.url
-                val duration = item.track.duration
+           requests.addAll(page.items.filter { item ->
+                shouldQueue(party, item.track.id)
+            }.map { item ->
+                            val id = item.track.id
+                            val title = item.track.name
+                            val url = item.track.uri
+                            val artist = item.track.artists.joinToString { it.name }
+                            val thumbnail = item.track.album?.images?.firstOrNull()?.url
+                            val duration = item.track.durationMs
 
-                if (shouldQueue(party, id)) {
-                    QueueSongRequest(id, artist, title, thumbnail ?: "", url, duration.toInt(), item.addedBy.displayName)
-                } else null
-            })
+                            QueueSongRequest(id, artist, title, thumbnail
+                                    ?: "", url, duration.toInt(), null)
+            }.take(limit - requests.size))
 
             offfset += page.items.size
         }
-
-        println(requests)
 
         return requests.distinctBy { it.uri }.toSet()
     }
