@@ -11,7 +11,6 @@
     <modules>
         <module>database</module>
         <module>party-api</module>
-        <module>party-manager</module>
         <module>party-bot</module>
         <module>queue-lib</module>
     </modules>
